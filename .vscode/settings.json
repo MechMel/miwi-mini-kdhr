@@ -1,0 +1,19 @@
+{
+  "filewatcher.commands": [
+    {
+      "match": "\\.*",
+      "notMatch": "\\website\\.*",
+      "isAsync": false,
+      "cmd": "cd \"${workspaceRoot}\" && tsx app.ts",
+      "event": "onFileChange"
+    },
+    {
+      "match": "\\.*",
+      "notMatch": "\\website\\.*",
+      "isAsync": false,
+      "cmd": "cd \"${workspaceRoot}\" && tsx app.ts",
+      "event": "onFolderChange"
+    }
+  ],
+  "liveServer.settings.port": 5501
+}
