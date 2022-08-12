@@ -1,6 +1,22 @@
 import * as fs from "fs";
 import * as React from "react";
 import { renderToString } from "react-dom/server";
+import {
+  contentsToHtml,
+  defineWidgetBuilder,
+  readonlyObj as readonlyObj,
+} from "./utils";
+
+// SECTION: Basic types
+export type Num = _ReactiveType<number>;
+export type Bool = _ReactiveType<boolean>;
+export type Text = _ReactiveType<string>;
+type _ReactiveType<T> =
+  | {
+      value: T;
+      onChange: Event;
+    }
+  | T;
 
 // SECTION: App Data
 export type AppData<T> = {
@@ -10,18 +26,147 @@ export function appData<T>(params: T): AppData<T> {
   return params as any;
 }
 
-// Conts
+// SECTION: Widget
+export interface Widget {
+  width: Size;
+  height: Size;
+  textColor: Material;
+  background: Material;
+  cornerRadius: number;
+  padding: Padding;
+  contentAlign: Align;
+  contentAxis: Axis;
+  contentSpacing: Spacing;
+  contents: Contents;
+  htmlTag: string;
+  toString: () => string;
+}
+
+/*export function isWidget(possibleWidget: any) : possibleWidget is Widget {
+}*/
+
+export type Size = number | string;
+export const size = readonlyObj({
+  exactly: function (num: number): Size {
+    return num;
+  },
+  shrink: -1 as Size,
+  grow: Infinity as Size,
+});
+
+export type Padding = Num | [Num, Num] | [Num, Num, Num, Num];
+
+export type Align = { x: number; y: number };
+export const align = readonlyObj({
+  topLeft: { x: -1, y: 1 } as Align,
+  topCenter: { x: 0, y: 1 } as Align,
+  topRight: { x: 1, y: 1 } as Align,
+  centerLeft: { x: -1, y: 0 } as Align,
+  center: { x: 0, y: 0 } as Align,
+  centerRight: { x: 1, y: 0 } as Align,
+  bottomLeft: { x: -1, y: -1 } as Align,
+  bottomCenter: { x: 0, y: -1 } as Align,
+  bottomRight: { x: 1, y: -1 } as Align,
+});
+
+export type Axis = `horizontal` | `vertical`;
+export const axis = readonlyObj({
+  horizontal: `horizontal` as Axis,
+  vertical: `vertical` as Axis,
+});
+
+export type Spacing =
+  | `space-between`
+  | `space-around`
+  | `space-evenly`
+  | number;
+export const spacing = readonlyObj({
+  spaceBetween: `space-between` as Spacing,
+  spaceAround: `space-around` as Spacing,
+  spaceEvenly: `space-evenly` as Spacing,
+  exactly: (num: number) => num as Spacing,
+});
+
+export type Contents = string | boolean | number | Widget | Widget[]; //Text | Bool | Num | Widget | Widget[];
+
+/** @Note Describes the styling of the background of a widget. */
+export type Material = RGB | HSV;
+export type HSV = `${number} ${number} ${number}`;
+export type RGB = `#${string}`;
+export const colors = readonlyObj({
+  white: `#ffffffff` as Material,
+  pink: `#e91e63ff` as Material,
+  red: `#f44336ff` as Material,
+  orange: `#ff9800ff` as Material,
+  yellow: `#ffea00ff` as Material,
+  green: `#4caf50ff` as Material,
+  teal: `#009688ff` as Material,
+  blue: `#2196f3ff` as Material,
+  purple: `#9c27b0ff` as Material,
+  brown: `#795548ff` as Material,
+  grey: `#9e9e9eff` as Material,
+  black: `#000000ff` as Material,
+  transparent: `#ffffff00` as Material,
+});
+
+/** @Note A box is the simplest UI widget. */
+export const box = defineWidgetBuilder({
+  width: size.shrink,
+  height: size.shrink,
+  textColor: colors.black,
+  background: colors.transparent,
+  cornerRadius: 0,
+  padding: 0,
+  contentAlign: align.center,
+  contentAxis: axis.vertical,
+  contentSpacing: 0,
+  contents: [],
+  htmlTag: `div`,
+});
+
+/** @Note Describes a button. */
+export const button = defineWidgetBuilder({
+  width: size.shrink,
+  height: size.shrink,
+  textColor: colors.white,
+  background: colors.blue,
+  cornerRadius: 0.5,
+  padding: 0.5,
+  contentAlign: align.center,
+  contentAxis: axis.vertical,
+  contentSpacing: 0,
+  contents: `Button`,
+  htmlTag: `button`,
+});
+
+// SECTION: Compile App
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
-// Builds an app
-export function app({
-  name = `Untitled`,
-  contents,
-}: {
-  name?: string;
-  contents?: Widget; //Contents;
-}) {
+const _pageWidget = defineWidgetBuilder({
+  width: `100vw`,
+  height: `100vh`,
+  textColor: colors.black,
+  background: colors.transparent,
+  cornerRadius: 0,
+  padding: 0,
+  contentAlign: align.center,
+  contentAxis: axis.vertical,
+  contentSpacing: 0,
+  contents: [],
+  htmlTag: `body`,
+});
+function _defaultPageParams() {
+  const params = _pageWidget() as any;
+  params.name = `Untitled`;
+  print(params);
+  return params as Partial<
+    Omit<Widget, `htmlTag` | `width` | `height`> & { name: string }
+  >;
+}
+
+/** @Note Describes a web page. */
+export function page(params = _defaultPageParams()) {
   // Ensure the website dir exists
   if (!fs.existsSync(rootOutputPath)) {
     fs.mkdirSync(rootOutputPath);
@@ -52,7 +197,7 @@ export function app({
               content="width=device-width, initial-scale=1.0"
             />
 
-            <title>{name}</title>
+            <title>{params.name}</title>
             <link rel="icon" type="image/png" href="images/favicon.png" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -66,79 +211,12 @@ export function app({
               rel="stylesheet"
             />
           </head>
-          <body>
-            <div
-              style={{
-                width: `${contents!.width}vw`,
-                height: `${contents!.height}vw`,
-                backgroundColor: `#FF0000`,
-              }}
-            ></div>
-          </body>
+          {contentsToHtml(_pageWidget(params))}
         </html>
       )
   );
 }
 
-export function button(params?: Partial<Widget>) {
-  return {
-    width: params?.width ?? size.contract(),
-    height: params?.height ?? size.contract(),
-    padding: params?.padding ?? 0,
-    contents: params?.contents ?? `Button`,
-    material: params?.material ?? `0 100 100`,
-  };
+export function print(message: any) {
+  console.log(message);
 }
-
-export function text(params?: Partial<Widget>) {
-  return {
-    width: params?.width ?? size.contract(),
-    height: params?.height ?? size.contract(),
-    padding: params?.padding ?? 0,
-    contents: params?.contents ?? `Text`,
-    material: params?.material ?? undefined,
-  };
-}
-
-// SECTION: Widget
-export interface Widget {
-  width: Size;
-  height: Size;
-  padding: Padding;
-  contents: Contents;
-  material: Material;
-}
-
-// SECTION: Size
-export type Size = Num;
-export const size = function (num: Num) {
-  return num;
-};
-size.contract = function () {
-  return -1;
-};
-size.expand = function () {
-  return Infinity;
-};
-
-// SECTION: Padding
-export type Padding = Num | [Num, Num] | [Num, Num, Num, Num];
-
-// SECTION: Contents
-export type Contents = Text | Bool | Num | Widget | Widget[];
-
-// SECTION: Material
-export type Material = RGB | HSV;
-export type HSV = `${number} ${number} ${number}`;
-export type RGB = `#${string}`;
-
-// SECTION: Basic types
-export type Num = _ReactiveType<number>;
-export type Bool = _ReactiveType<boolean>;
-export type Text = _ReactiveType<string>;
-type _ReactiveType<T> =
-  | {
-      value: T;
-      onChange: Event;
-    }
-  | T;
