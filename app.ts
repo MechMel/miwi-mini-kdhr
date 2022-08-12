@@ -20,20 +20,23 @@ page({
   name: `Melchiah's App`,
   contentAlign: align.topLeft,
   contentAxis: axis.vertical,
-  contentSpacing: spacing.spaceEvenly,
+  padding: 1,
+  contentSpacing: 1,
   contents: [
     box({
-      width: 9,
-      height: 5,
-      cornerRadius: 1,
-      textColor: colors.white,
-      background: colors.red,
-      contents: `Hello Melchiah!`,
-    }),
-    box({
-      width: 5,
-      height: 5,
-      background: colors.green,
+      contentAxis: axis.horizontal,
+      contentAlign: align.bottomCenter,
+      contentSpacing: 1,
+      contents: [
+        button({
+          background: colors.red,
+          contents: `Hello Melchiah!`,
+        }),
+        button({
+          background: colors.red,
+          contents: `Hello Melchiah!`,
+        }),
+      ],
     }),
     button({
       width: size.grow,

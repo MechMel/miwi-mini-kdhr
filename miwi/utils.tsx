@@ -1,6 +1,6 @@
 import * as React from "react";
 import { renderToString } from "react-dom/server";
-import { Contents, Widget, print, size, axis, Axis } from "./module";
+import { Contents, Widget, print, size, axis, Axis, colors } from "./module";
 
 export function readonlyObj<T>(obj: T): Readonly<T> {
   return obj;
@@ -52,16 +52,15 @@ export function contentsToHtml(
             width:
               typeof contents.width === `string`
                 ? contents.width
-                : contents.height !== size.shrink &&
-                  contents.height !== size.grow
-                ? `${contents.width}vw`
+                : contents.width !== size.shrink && contents.width !== size.grow
+                ? numToStandardHtmlUnit(contents.width)
                 : undefined,
             height:
               typeof contents.height === `string`
                 ? contents.height
                 : contents.height !== size.shrink &&
                   contents.height !== size.grow
-                ? `${contents.height}vw`
+                ? numToStandardHtmlUnit(contents.height)
                 : undefined,
             alignSelf:
               parentAxis === axis.horizontal
@@ -80,14 +79,16 @@ export function contentsToHtml(
                 ? 1
                 : undefined,
             backgroundColor: contents.background,
-            borderRadius: `${contents.cornerRadius}vw`,
+            borderRadius: numToStandardHtmlUnit(contents.cornerRadius),
             color: contents.textColor,
             fontFamily: `Roboto`,
-            fontSize: `0.825vw`,
+            fontSize: numToStandardHtmlUnit(0.825),
             margin: 0,
-            padding: `${contents.padding}vw`,
+            //padding: numToStandardHtmlUnit(contents.padding),
+            border: `${numToStandardHtmlUnit(contents.padding)} ${
+              colors.transparent
+            } solid`,
             display: `flex`,
-            border: `none`,
             // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
             justifyContent:
               // Exact spacing is handled through grid gap
@@ -119,12 +120,12 @@ export function contentsToHtml(
             rowGap:
               contents.contentAxis === axis.vertical &&
               typeof contents.contentSpacing === `number`
-                ? `${contents.contentSpacing}vw`
+                ? numToStandardHtmlUnit(contents.contentSpacing)
                 : undefined,
             columnGap:
               contents.contentAxis === axis.horizontal &&
               typeof contents.contentSpacing === `number`
-                ? `${contents.contentSpacing}vw`
+                ? numToStandardHtmlUnit(contents.contentSpacing)
                 : undefined,
             flexDirection:
               contents.contentAxis === axis.vertical ? `column` : `row`,
@@ -136,4 +137,8 @@ export function contentsToHtml(
   }
 
   return htmlElements;
+}
+
+export function numToStandardHtmlUnit(num: number) {
+  return `${num * (45.0 / 24.0)}vmin`;
 }

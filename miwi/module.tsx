@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import {
   contentsToHtml,
   defineWidgetBuilder,
+  numToStandardHtmlUnit,
   readonlyObj as readonlyObj,
 } from "./utils";
 
@@ -54,7 +55,7 @@ export const size = readonlyObj({
   grow: Infinity as Size,
 });
 
-export type Padding = Num | [Num, Num] | [Num, Num, Num, Num];
+export type Padding = number; //Num | [Num, Num] | [Num, Num, Num, Num];
 
 export type Align = { x: number; y: number };
 export const align = readonlyObj({
@@ -144,8 +145,8 @@ const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
 const _pageWidget = defineWidgetBuilder({
-  width: `100vw`,
-  height: `100vh`,
+  width: `100%`,
+  height: `100%`,
   textColor: colors.black,
   background: colors.transparent,
   cornerRadius: 0,
@@ -154,7 +155,7 @@ const _pageWidget = defineWidgetBuilder({
   contentAxis: axis.vertical,
   contentSpacing: 0,
   contents: [],
-  htmlTag: `body`,
+  htmlTag: `div`,
 });
 function _defaultPageParams() {
   const params = _pageWidget() as any;
@@ -211,7 +212,28 @@ export function page(params = _defaultPageParams()) {
               rel="stylesheet"
             />
           </head>
-          {contentsToHtml(_pageWidget(params))}
+          <body
+            style={{
+              margin: 0,
+              padding: 0,
+              width: `100vw`,
+              height: `100vh`,
+              display: `flex`,
+              justifyContent: `center`,
+              alignItems: `center`,
+            }}
+          >
+            <div
+              style={{
+                width: `45vmin`,
+                height: `75vmin`,
+                border: `${numToStandardHtmlUnit(0.5)} solid black`,
+                borderRadius: `${numToStandardHtmlUnit(0.5)}`,
+              }}
+            >
+              {contentsToHtml(_pageWidget(params))}
+            </div>
+          </body>
         </html>
       )
   );
