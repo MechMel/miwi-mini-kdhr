@@ -70,6 +70,7 @@ export function contentsToHtml(
                 : contents.width === size.grow
                 ? `stretch`
                 : undefined,
+            boxSizing: `border-box`,
             flexGrow:
               parentAxis === axis.horizontal
                 ? contents.width === size.grow
@@ -84,10 +85,10 @@ export function contentsToHtml(
             fontFamily: `Roboto`,
             fontSize: numToStandardHtmlUnit(0.825),
             margin: 0,
-            //padding: numToStandardHtmlUnit(contents.padding),
-            border: `${numToStandardHtmlUnit(contents.padding)} ${
+            padding: numToStandardHtmlUnit(contents.padding),
+            border: `none` /*`${numToStandardHtmlUnit(contents.padding)} ${
               colors.transparent
-            } solid`,
+            } solid`,*/,
             display: `flex`,
             // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
             justifyContent:

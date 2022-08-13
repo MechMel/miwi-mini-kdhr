@@ -29,12 +29,16 @@ page({
       contentSpacing: 1,
       contents: [
         button({
+          width: size.grow,
           background: colors.red,
-          contents: `Hello Melchiah!`,
         }),
         button({
+          width: size.grow,
           background: colors.red,
-          contents: `Hello Melchiah!`,
+        }),
+        button({
+          width: size.grow,
+          background: colors.red,
         }),
       ],
     }),
