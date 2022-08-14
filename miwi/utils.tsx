@@ -154,13 +154,13 @@ export function contentsToHtmlWithInfo(params: {
       <span
         className="material-symbols-outlined"
         style={{
-          width: numToStandardHtmlUnit(params.parent.textSize),
-          height: numToStandardHtmlUnit(params.parent.textSize),
+          width: numToIconSize(params.parent.textSize),
+          height: numToIconSize(params.parent.textSize),
           color: params.parent.textColor,
           display: `inline-block`,
           verticalAlign: `middle`,
           textAlign: `center`,
-          fontSize: numToStandardHtmlUnit(params.parent.textSize),
+          fontSize: numToIconSize(params.parent.textSize),
         }}
       >
         {params.contents.icon}
@@ -301,6 +301,9 @@ export function contentsToHtmlWithInfo(params: {
 
 export function numToFontSize(num: number) {
   return numToStandardHtmlUnit(0.825 * num);
+}
+export function numToIconSize(num: number) {
+  return numToStandardHtmlUnit(0.9 * num);
 }
 
 export function numToStandardHtmlUnit(num: number) {

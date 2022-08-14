@@ -52,8 +52,17 @@ page({
           cornerRadius: 2,
           background: `profile_picture.jpg`,
         }),
-        button({
-          contents: icons.settings + ` Settings`,
+        box({
+          contentAxis: axis.horizontal,
+          contents: [
+            button({
+              contents: icons.settings + ` Settings`,
+            }),
+            button({
+              height: 2,
+              contents: `adasdfas`,
+            }),
+          ],
         }),
         button({
           contents: icons.settings,
