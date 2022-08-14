@@ -53,9 +53,11 @@ page({
           background: `profile_picture.jpg`,
         }),
         button({
+          contents: icons.settings + ` Settings`,
+        }),
+        button({
           contents: icons.settings,
         }),
-        `Feel free to click the ${icons.settings} button. ${icons.settings} or this`,
       ],
     }),
   ],

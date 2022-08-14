@@ -154,9 +154,13 @@ export function contentsToHtmlWithInfo(params: {
       <span
         className="material-symbols-outlined"
         style={{
+          width: numToStandardHtmlUnit(params.parent.textSize),
+          height: numToStandardHtmlUnit(params.parent.textSize),
           color: params.parent.textColor,
-          display: `inline`,
-          fontSize: numToFontSize(params.parent.textSize),
+          display: `inline-block`,
+          verticalAlign: `middle`,
+          textAlign: `center`,
+          fontSize: numToStandardHtmlUnit(params.parent.textSize),
         }}
       >
         {params.contents.icon}
