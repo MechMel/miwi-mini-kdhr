@@ -9,6 +9,7 @@ import {
   axis,
   spacing,
   appBar,
+  icons,
 } from "./miwi/module";
 
 // Data
@@ -33,13 +34,15 @@ page({
           contentSpacing: 1,
           contents: [
             button({
-              background: colors.red,
+              background: colors.green,
             }),
             button({
               background: colors.red,
+              contents: false,
             }),
             button({
-              background: colors.red,
+              background: colors.pink,
+              contents: 55,
             }),
           ],
         }),
@@ -49,7 +52,10 @@ page({
           cornerRadius: 2,
           background: `profile_picture.jpg`,
         }),
-        button(),
+        button({
+          contents: icons.settings,
+        }),
+        `Feel free to click the ${icons.settings} button. ${icons.settings} or this`,
       ],
     }),
   ],

@@ -36,7 +36,7 @@ export interface Widget {
   textSize: number;
   textIsBold: boolean;
   textIsItalic: boolean;
-  textColor: Material;
+  textColor: RGB;
   background: Material;
   cornerRadius: number;
   padding: Padding;
@@ -107,31 +107,51 @@ export const spacing = readonlyObj({
   exactly: (num: number) => num as Spacing,
 });
 
-export type Contents =
-  | string
-  | boolean
-  | number
-  | Widget
-  | (string | boolean | number | Widget)[]; //Text | Bool | Num | Widget | Widget[];
+export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
+type _SingleContentTypes = string | boolean | number | Icon | Widget;
+export type Icon = { icon: string; toString: () => string };
+export function _isIcon(possibleIcon: any): possibleIcon is Icon {
+  return exists(possibleIcon?.icon);
+}
+export const icons = _buildIconsObj([`settings`]);
+export const _inlineContentOpenTag = `$$#@%`;
+export const _inlineContentCloseTag = `%@#$$`;
+function _buildIconsObj<T1 extends T2[] | [], T2 extends string>(
+  unformattedIcons: T1
+): { readonly [Key in T1[number]]: Icon } {
+  const formattedIcons: any = {};
+  for (const i in unformattedIcons) {
+    formattedIcons[unformattedIcons[i]] = {
+      icon: unformattedIcons[i],
+      toString: function () {
+        return `$$#@%${JSON.stringify({
+          icon: unformattedIcons[i],
+        })}%@#$$`;
+      },
+    };
+  }
+  return readonlyObj(formattedIcons) as { readonly [Key in T1[number]]: Icon };
+}
 
 /** @Note Describes the styling of the background of a widget. */
 export type Material = RGB | ImageRef;
 //export type HSV = `${number} ${number} ${number}`;
 export type RGB = `#${string}`;
 export const colors = readonlyObj({
-  white: `#ffffffff` as Material,
-  pink: `#e91e63ff` as Material,
-  red: `#f44336ff` as Material,
-  orange: `#ff9800ff` as Material,
-  yellow: `#ffea00ff` as Material,
-  green: `#4caf50ff` as Material,
-  teal: `#009688ff` as Material,
-  blue: `#2196f3ff` as Material,
-  purple: `#9c27b0ff` as Material,
-  brown: `#795548ff` as Material,
-  grey: `#9e9e9eff` as Material,
-  black: `#000000ff` as Material,
-  transparent: `#ffffff00` as Material,
+  white: `#ffffffff` as RGB,
+  almostWhite: `#f9fafdff` as RGB,
+  pink: `#e91e63ff` as RGB,
+  red: `#f44336ff` as RGB,
+  orange: `#ff9800ff` as RGB,
+  yellow: `#ffea00ff` as RGB,
+  green: `#4caf50ff` as RGB,
+  teal: `#009688ff` as RGB,
+  blue: `#2196f3ff` as RGB,
+  purple: `#9c27b0ff` as RGB,
+  brown: `#795548ff` as RGB,
+  grey: `#9e9e9eff` as RGB,
+  black: `#000000ff` as RGB,
+  transparent: `#ffffff00` as RGB,
 });
 export type ImageRef = string;
 const _imageExtensions = [`.ico`, `.svg`, `.png`, `.jpg`, `.jpeg`];
@@ -205,7 +225,7 @@ const _pageWidget = defineWidgetBuilder({
   textIsBold: true,
   textIsItalic: false,
   textColor: colors.black,
-  background: colors.transparent,
+  background: colors.almostWhite,
   cornerRadius: 0,
   padding: 0,
   contentAlign: align.topCenter,
@@ -290,7 +310,7 @@ export function page(params = _defaultPageParams()) {
             />
 
             <title>{params.name}</title>
-            <link rel="icon" type="image/png" href="favicon.png" />
+            <link rel="icon" type="image/png" href="/favicon.png" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link
@@ -301,6 +321,10 @@ export function page(params = _defaultPageParams()) {
             <link
               href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
               rel="stylesheet"
+            />
+            <link
+              rel="stylesheet"
+              href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,1,0"
             />
           </head>
           <body
@@ -336,7 +360,12 @@ export function page(params = _defaultPageParams()) {
                 border: `${numToStandardHtmlUnit(0.75)} solid black`,
               }}
             >
-              {contentsToHtmlWithInfo(_pageWidget(params)).htmlElements}
+              {
+                contentsToHtmlWithInfo({
+                  contents: _pageWidget(params),
+                  parent: box(),
+                }).htmlElements
+              }
             </div>
             <div
               style={{

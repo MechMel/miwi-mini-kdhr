@@ -12,6 +12,11 @@ import {
   _pageWidthVmin,
   spacing,
   _isMaterialImage,
+  _inlineContentOpenTag,
+  _inlineContentCloseTag,
+  button,
+  _isIcon,
+  RGB,
 } from "./module";
 
 export function readonlyObj<T>(obj: T): Readonly<T> {
@@ -31,19 +36,24 @@ export function defineWidgetBuilder(
         (invocationParams as any)?.[key] ?? (defaultParams as any)[key];
     }
     newWidget.toString = function (): string {
-      return renderToString(
+      return `$$#@%${JSON.stringify(newWidget)}%@#$$`;
+      /*return renderToString(
         contentsToHtmlWithInfo(newWidget).htmlElements[0] as any
-      );
+      );*/
     };
     return newWidget;
   };
 }
 
-export function contentsToHtmlWithInfo(
-  contents: Contents,
+export function contentsToHtmlWithInfo(params: {
+  contents: Contents;
   // We default to horizontal because widget.toString() is mainly called when embeding widgets in text.
-  parentAxis = axis.horizontal as Axis
-) {
+  parent: Widget;
+}): {
+  htmlElements: (JSX.Element | string)[];
+  widthGrows: boolean;
+  heightGrows: boolean;
+} {
   // We always return a list of html elements
   const myInfo = {
     htmlElements: [] as (JSX.Element | string)[],
@@ -52,137 +62,228 @@ export function contentsToHtmlWithInfo(
   };
 
   // We'll split arrays into their individual elements and recurssively convert them to html.
-  if (Array.isArray(contents)) {
-    for (let i in contents) {
-      const thisWidgetInfo = contentsToHtmlWithInfo(contents[i], parentAxis);
+  if (Array.isArray(params.contents)) {
+    for (let i in params.contents) {
+      const thisWidgetInfo = contentsToHtmlWithInfo({
+        contents: params.contents[i],
+        parent: params.parent,
+      });
       myInfo.htmlElements.push(thisWidgetInfo.htmlElements[0]);
       myInfo.widthGrows = thisWidgetInfo.widthGrows || myInfo.widthGrows;
       myInfo.heightGrows = thisWidgetInfo.heightGrows || myInfo.heightGrows;
     }
   } else if (
-    typeof contents === `string` ||
-    typeof contents === `number` ||
-    typeof contents === `boolean`
+    typeof params.contents === `string` ||
+    typeof params.contents === `number` ||
+    typeof params.contents === `boolean`
   ) {
-    myInfo.htmlElements.push(contents.toString());
-  } else {
-    const childrenInfo = contentsToHtmlWithInfo(
-      contents.contents,
-      contents.contentAxis
+    const paragraphParts: (string | JSX.Element)[] = [];
+    if (typeof params.contents === `string`) {
+      const contentsAsString = params.contents;
+      let openTagIndex = contentsAsString.indexOf(_inlineContentOpenTag);
+      let closeTagIndex = 0 - _inlineContentCloseTag.length;
+      while (openTagIndex >= 0) {
+        // Read in any trailing text
+        if (openTagIndex - closeTagIndex + _inlineContentCloseTag.length > 0) {
+          paragraphParts.push(
+            contentsAsString.substring(
+              closeTagIndex + _inlineContentCloseTag.length,
+              openTagIndex
+            )
+          );
+        }
+        closeTagIndex =
+          openTagIndex +
+          contentsAsString
+            .substring(openTagIndex)
+            .indexOf(_inlineContentCloseTag);
+        let embededContent = contentsToHtmlWithInfo({
+          contents: JSON.parse(
+            contentsAsString.substring(
+              openTagIndex + _inlineContentOpenTag.length,
+              closeTagIndex
+            )
+          ) as Widget,
+          parent: params.parent,
+        }).htmlElements[0];
+        paragraphParts.push(embededContent);
+        openTagIndex = contentsAsString
+          .substring(closeTagIndex)
+          .indexOf(_inlineContentOpenTag);
+        if (openTagIndex >= 0) {
+          openTagIndex += closeTagIndex;
+        }
+      }
+      if (
+        closeTagIndex + _inlineContentCloseTag.length <
+        contentsAsString.length
+      ) {
+        paragraphParts.push(
+          contentsAsString.substring(
+            closeTagIndex + _inlineContentCloseTag.length,
+            contentsAsString.length
+          )
+        );
+      }
+    } else {
+      paragraphParts.push(params.contents.toString());
+    }
+    myInfo.htmlElements.push(
+      <p
+        style={{
+          color: params.parent.textColor,
+          fontFamily: `Roboto`,
+          fontSize: numToFontSize(params.parent.textSize),
+          fontWeight: params.parent.textIsBold ? `bold` : undefined,
+          fontStyle: params.parent.textIsItalic ? `italic` : undefined,
+          textAlign:
+            params.parent.contentAlign.x === -1
+              ? `left`
+              : params.parent.contentAlign.x === 0
+              ? `center`
+              : `right`,
+          margin: 0,
+          padding: 0,
+        }}
+      >
+        {paragraphParts}
+      </p>
     );
+  } else if (_isIcon(params.contents)) {
+    myInfo.htmlElements.push(
+      <span
+        className="material-symbols-outlined"
+        style={{
+          color: params.parent.textColor,
+          display: `inline`,
+          fontSize: numToFontSize(params.parent.textSize),
+        }}
+      >
+        {params.contents.icon}
+      </span>
+    );
+  } else {
+    const childrenInfo = contentsToHtmlWithInfo({
+      contents: params.contents.contents,
+      parent: params.contents,
+    });
     myInfo.widthGrows =
-      _isSizeGrowConfig(contents.width) ||
-      (contents.width == size.basedOnContents && childrenInfo.widthGrows);
+      _isSizeGrowConfig(params.contents.width) ||
+      (params.contents.width == size.basedOnContents &&
+        childrenInfo.widthGrows);
     myInfo.heightGrows =
-      _isSizeGrowConfig(contents.height) ||
-      (contents.height == size.basedOnContents && childrenInfo.heightGrows);
+      _isSizeGrowConfig(params.contents.height) ||
+      (params.contents.height == size.basedOnContents &&
+        childrenInfo.heightGrows);
     myInfo.htmlElements.push(
       React.createElement(
-        contents.htmlTag,
+        params.contents.htmlTag,
         {
           style: {
             display: `flex`,
             width:
-              typeof contents.width === `string`
-                ? contents.width
-                : contents.width !== size.basedOnContents && !myInfo.widthGrows
-                ? numToStandardHtmlUnit(contents.width as number)
+              typeof params.contents.width === `string`
+                ? params.contents.width
+                : params.contents.width !== size.basedOnContents &&
+                  !myInfo.widthGrows
+                ? numToStandardHtmlUnit(params.contents.width as number)
                 : undefined,
             height:
-              typeof contents.height === `string`
-                ? contents.height
-                : contents.height !== size.basedOnContents &&
+              typeof params.contents.height === `string`
+                ? params.contents.height
+                : params.contents.height !== size.basedOnContents &&
                   !myInfo.heightGrows
-                ? numToStandardHtmlUnit(contents.height as number)
+                ? numToStandardHtmlUnit(params.contents.height as number)
                 : undefined,
             flexGrow:
-              parentAxis === axis.horizontal
-                ? _isSizeGrowConfig(contents.width)
-                  ? contents.width.flex
+              params.parent.contentAxis === axis.horizontal
+                ? _isSizeGrowConfig(params.contents.width)
+                  ? params.contents.width.flex
                   : myInfo.widthGrows
                   ? 1
                   : undefined
-                : _isSizeGrowConfig(contents.height)
-                ? contents.height.flex
+                : _isSizeGrowConfig(params.contents.height)
+                ? params.contents.height.flex
                 : myInfo.heightGrows
                 ? 1
                 : undefined,
             alignSelf:
-              (parentAxis === axis.horizontal && myInfo.heightGrows) ||
-              (parentAxis === axis.vertical && myInfo.widthGrows)
+              (params.parent.contentAxis === axis.horizontal &&
+                myInfo.heightGrows) ||
+              (params.parent.contentAxis === axis.vertical && myInfo.widthGrows)
                 ? `stretch`
                 : undefined,
             boxSizing: `border-box`,
-            backgroundColor: _isMaterialImage(contents.background)
+            backgroundColor: _isMaterialImage(params.contents.background)
               ? undefined
-              : contents.background,
-            backgroundImage: _isMaterialImage(contents.background)
-              ? `url(${contents.background})`
+              : params.contents.background,
+            backgroundImage: _isMaterialImage(params.contents.background)
+              ? `url(${params.contents.background})`
               : undefined,
-            backgroundPosition: _isMaterialImage(contents.background)
+            backgroundPosition: _isMaterialImage(params.contents.background)
               ? `center`
               : undefined,
-            backgroundSize: _isMaterialImage(contents.background)
+            backgroundSize: _isMaterialImage(params.contents.background)
               ? `cover`
               : undefined,
-            borderRadius: numToStandardHtmlUnit(contents.cornerRadius),
+            borderRadius: numToStandardHtmlUnit(params.contents.cornerRadius),
             border: `none`,
-            color: contents.textColor,
+            color: params.contents.textColor,
             fontFamily: `Roboto`,
-            fontSize: numToStandardHtmlUnit(0.825 * contents.textSize),
-            fontWeight: contents.textIsBold ? `bold` : undefined,
-            fontStyle: contents.textIsItalic ? `italic` : undefined,
+            fontSize: numToFontSize(params.contents.textSize),
+            fontWeight: params.contents.textIsBold ? `bold` : undefined,
+            fontStyle: params.contents.textIsItalic ? `italic` : undefined,
             textAlign:
-              contents.contentAlign.x === -1
+              params.contents.contentAlign.x === -1
                 ? `left`
-                : contents.contentAlign.x === 0
+                : params.contents.contentAlign.x === 0
                 ? `center`
                 : `right`,
             margin: 0,
-            padding: numToStandardHtmlUnit(contents.padding),
+            padding: numToStandardHtmlUnit(params.contents.padding),
             flexDirection:
-              contents.contentAxis === axis.vertical ? `column` : `row`,
+              params.contents.contentAxis === axis.vertical ? `column` : `row`,
             // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
             justifyContent:
               // Exact spacing is handled through grid gap
-              typeof contents.contentSpacing === `number`
-                ? contents.contentAxis === axis.vertical
-                  ? contents.contentAlign.y === 1
+              typeof params.contents.contentSpacing === `number`
+                ? params.contents.contentAxis === axis.vertical
+                  ? params.contents.contentAlign.y === 1
                     ? `flex-start`
-                    : contents.contentAlign.y === 0
+                    : params.contents.contentAlign.y === 0
                     ? `center`
                     : `flex-end`
-                  : contents.contentAlign.x === -1
+                  : params.contents.contentAlign.x === -1
                   ? `flex-start`
-                  : contents.contentAlign.x === 0
+                  : params.contents.contentAlign.x === 0
                   ? `center`
                   : `flex-end`
-                : contents.contentSpacing === spacing.spaceBetween &&
+                : params.contents.contentSpacing === spacing.spaceBetween &&
                   childrenInfo.htmlElements.length === 1
                 ? // For whatever reason, space-between with one item puts it at the start instead of centering it.
                   spacing.spaceAround
-                : contents.contentSpacing,
+                : params.contents.contentSpacing,
             alignItems:
-              contents.contentAxis === axis.vertical
-                ? contents.contentAlign.x === -1
+              params.contents.contentAxis === axis.vertical
+                ? params.contents.contentAlign.x === -1
                   ? `flex-start`
-                  : contents.contentAlign.x === 0
+                  : params.contents.contentAlign.x === 0
                   ? `center`
                   : `flex-end`
-                : contents.contentAlign.y === 1
+                : params.contents.contentAlign.y === 1
                 ? `flex-start`
-                : contents.contentAlign.y === 0
+                : params.contents.contentAlign.y === 0
                 ? `center`
                 : `flex-end`,
             rowGap:
-              contents.contentAxis === axis.vertical &&
-              typeof contents.contentSpacing === `number`
-                ? numToStandardHtmlUnit(contents.contentSpacing)
+              params.contents.contentAxis === axis.vertical &&
+              typeof params.contents.contentSpacing === `number`
+                ? numToStandardHtmlUnit(params.contents.contentSpacing)
                 : undefined,
             columnGap:
-              contents.contentAxis === axis.horizontal &&
-              typeof contents.contentSpacing === `number`
-                ? numToStandardHtmlUnit(contents.contentSpacing)
+              params.contents.contentAxis === axis.horizontal &&
+              typeof params.contents.contentSpacing === `number`
+                ? numToStandardHtmlUnit(params.contents.contentSpacing)
                 : undefined,
           },
         },
@@ -194,7 +295,9 @@ export function contentsToHtmlWithInfo(
   return myInfo;
 }
 
-function tallyUpContnetGrowth() {}
+export function numToFontSize(num: number) {
+  return numToStandardHtmlUnit(0.825 * num);
+}
 
 export function numToStandardHtmlUnit(num: number) {
   return `${num * (_pageWidthVmin / 24)}vmin`;
