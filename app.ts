@@ -8,6 +8,7 @@ import {
   size,
   axis,
   spacing,
+  appBar,
 } from "./miwi/module";
 
 // Data
@@ -18,33 +19,38 @@ const data = appData({
 // UI
 page({
   name: `Melchiah's App`,
-  contentAlign: align.topLeft,
   contentAxis: axis.vertical,
-  padding: 1,
-  contentSpacing: 1,
   contents: [
+    appBar(),
     box({
-      contentAxis: axis.horizontal,
-      contentAlign: align.bottomCenter,
+      padding: 1,
       contentSpacing: 1,
       contents: [
-        button({
-          width: size.grow,
-          background: colors.red,
+        box({
+          width: size.basedOnContents,
+          contentAxis: axis.horizontal,
+          contentAlign: align.center,
+          contentSpacing: 1,
+          contents: [
+            button({
+              background: colors.red,
+            }),
+            button({
+              background: colors.red,
+            }),
+            button({
+              background: colors.red,
+            }),
+          ],
         }),
-        button({
-          width: size.grow,
-          background: colors.red,
+        box({
+          width: 4,
+          height: 4,
+          cornerRadius: 2,
+          background: `profile_picture.jpg`,
         }),
-        button({
-          width: size.grow,
-          background: colors.red,
-        }),
+        button(),
       ],
-    }),
-    button({
-      width: size.grow,
-      height: size.grow,
     }),
   ],
 });

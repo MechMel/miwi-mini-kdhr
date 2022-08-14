@@ -1,9 +1,11 @@
 import * as fs from "fs";
+import * as path from "path";
 import * as React from "react";
 import { renderToString } from "react-dom/server";
 import {
-  contentsToHtml,
+  contentsToHtmlWithInfo,
   defineWidgetBuilder,
+  exists,
   numToStandardHtmlUnit,
   readonlyObj as readonlyObj,
 } from "./utils";
@@ -31,6 +33,9 @@ export function appData<T>(params: T): AppData<T> {
 export interface Widget {
   width: Size;
   height: Size;
+  textSize: number;
+  textIsBold: boolean;
+  textIsItalic: boolean;
   textColor: Material;
   background: Material;
   cornerRadius: number;
@@ -46,14 +51,28 @@ export interface Widget {
 /*export function isWidget(possibleWidget: any) : possibleWidget is Widget {
 }*/
 
-export type Size = number | string;
+export type Size = number | string | _SizeGrowConfig;
 export const size = readonlyObj({
   exactly: function (num: number): Size {
     return num;
   },
-  shrink: -1 as Size,
-  grow: Infinity as Size,
+  basedOnContents: -1 as Size,
+  grow: (function () {
+    const buildGrowth = function (flex: number) {
+      return { flex: flex };
+    };
+    buildGrowth.flex = 1;
+    return buildGrowth;
+  })(),
 });
+type _SizeGrowConfig = {
+  flex: number;
+};
+export function _isSizeGrowConfig(
+  possibleGroth: any
+): possibleGroth is _SizeGrowConfig {
+  return exists(possibleGroth.flex);
+}
 
 export type Padding = number; //Num | [Num, Num] | [Num, Num, Num, Num];
 
@@ -88,11 +107,16 @@ export const spacing = readonlyObj({
   exactly: (num: number) => num as Spacing,
 });
 
-export type Contents = string | boolean | number | Widget | Widget[]; //Text | Bool | Num | Widget | Widget[];
+export type Contents =
+  | string
+  | boolean
+  | number
+  | Widget
+  | (string | boolean | number | Widget)[]; //Text | Bool | Num | Widget | Widget[];
 
 /** @Note Describes the styling of the background of a widget. */
-export type Material = RGB | HSV;
-export type HSV = `${number} ${number} ${number}`;
+export type Material = RGB | ImageRef;
+//export type HSV = `${number} ${number} ${number}`;
 export type RGB = `#${string}`;
 export const colors = readonlyObj({
   white: `#ffffffff` as Material,
@@ -109,11 +133,19 @@ export const colors = readonlyObj({
   black: `#000000ff` as Material,
   transparent: `#ffffff00` as Material,
 });
+export type ImageRef = string;
+const _imageExtensions = [`.ico`, `.svg`, `.png`, `.jpg`, `.jpeg`];
+export function _isMaterialImage(material: Material): material is ImageRef {
+  return material[0] !== `#`;
+}
 
 /** @Note A box is the simplest UI widget. */
 export const box = defineWidgetBuilder({
-  width: size.shrink,
-  height: size.shrink,
+  width: size.basedOnContents,
+  height: size.basedOnContents,
+  textSize: 1,
+  textIsBold: false,
+  textIsItalic: false,
   textColor: colors.black,
   background: colors.transparent,
   cornerRadius: 0,
@@ -127,8 +159,11 @@ export const box = defineWidgetBuilder({
 
 /** @Note Describes a button. */
 export const button = defineWidgetBuilder({
-  width: size.shrink,
-  height: size.shrink,
+  width: size.basedOnContents,
+  height: size.basedOnContents,
+  textSize: 1,
+  textIsBold: false,
+  textIsItalic: false,
   textColor: colors.white,
   background: colors.blue,
   cornerRadius: 0.5,
@@ -140,18 +175,40 @@ export const button = defineWidgetBuilder({
   htmlTag: `button`,
 });
 
+/** @Note An app bar is the colored bar at the top of a lot of apps. */
+export const appBar = defineWidgetBuilder({
+  width: size.grow,
+  height: size.basedOnContents,
+  textSize: 2,
+  textIsBold: true,
+  textIsItalic: false,
+  textColor: colors.white,
+  background: colors.blue,
+  cornerRadius: 0,
+  padding: 1,
+  contentAlign: align.center,
+  contentAxis: axis.horizontal,
+  contentSpacing: spacing.spaceBetween,
+  contents: `Untitled`,
+  htmlTag: `nav`,
+});
+
 // SECTION: Compile App
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
+export const _pageWidthVmin = 43;
 const _pageWidget = defineWidgetBuilder({
   width: `100%`,
   height: `100%`,
+  textSize: 2,
+  textIsBold: true,
+  textIsItalic: false,
   textColor: colors.black,
   background: colors.transparent,
   cornerRadius: 0,
   padding: 0,
-  contentAlign: align.center,
+  contentAlign: align.topCenter,
   contentAxis: axis.vertical,
   contentSpacing: 0,
   contents: [],
@@ -172,16 +229,50 @@ export function page(params = _defaultPageParams()) {
   if (!fs.existsSync(rootOutputPath)) {
     fs.mkdirSync(rootOutputPath);
   }
-  if (!fs.existsSync(`${rootOutputPath}/images`)) {
-    fs.mkdirSync(`${rootOutputPath}/images`);
+
+  // Remove old website content
+  removeOldWebsite();
+  function removeOldWebsite(dir = rootOutputPath) {
+    const allFiles = fs.readdirSync(dir);
+    for (const i in allFiles) {
+      const absoluteFilePath = path.resolve(dir, allFiles[i]);
+      const fileStats = fs.statSync(absoluteFilePath);
+      if (fileStats.isDirectory()) {
+        removeOldWebsite(absoluteFilePath);
+        fs.rmdirSync(absoluteFilePath);
+      } else {
+        if (allFiles[i] != `index.html`) {
+          fs.unlinkSync(absoluteFilePath);
+        }
+      }
+    }
   }
 
-  // Update the favicon
-  if (fs.existsSync(`${rootProjectPath}/icon.png`)) {
-    fs.writeFileSync(
-      `${rootOutputPath}/images/favicon.png`,
-      fs.readFileSync(`${rootProjectPath}/icon.png`)
-    );
+  // Copy all the images in
+  const _dirBlackList = [`miwi`, `website`, `.vscode`, `node_modules`, `.git`];
+  copyAllImages();
+  function copyAllImages(dir = rootProjectPath) {
+    const allFiles = fs.readdirSync(dir);
+    for (const i in allFiles) {
+      const absoluteFilePath = path.resolve(dir, allFiles[i]);
+      const fileStats = fs.statSync(absoluteFilePath);
+      if (fileStats.isDirectory()) {
+        if (!_dirBlackList.includes(allFiles[i])) {
+          const newDirPath = path.resolve(rootOutputPath, dir, allFiles[i]);
+          if (!fs.existsSync(newDirPath)) {
+            fs.mkdirSync(path.resolve(rootOutputPath, dir, allFiles[i]));
+          }
+          copyAllImages(`${dir}/${allFiles[i]}`);
+        }
+      } else {
+        if (_imageExtensions.includes(path.extname(allFiles[i]))) {
+          fs.writeFileSync(
+            path.resolve(rootOutputPath, dir, allFiles[i]),
+            fs.readFileSync(absoluteFilePath)
+          );
+        }
+      }
+    }
   }
 
   // Copy the index.html file
@@ -199,7 +290,7 @@ export function page(params = _defaultPageParams()) {
             />
 
             <title>{params.name}</title>
-            <link rel="icon" type="image/png" href="images/favicon.png" />
+            <link rel="icon" type="image/png" href="favicon.png" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link
@@ -221,18 +312,43 @@ export function page(params = _defaultPageParams()) {
               display: `flex`,
               justifyContent: `center`,
               alignItems: `center`,
+              flexDirection: `column`,
             }}
           >
             <div
               style={{
-                width: `45vmin`,
+                width: `${_pageWidthVmin}vmin`,
+                height: `1vmin`,
+                backgroundColor: colors.black,
+                border: `${numToStandardHtmlUnit(0.75)} solid black`,
+                borderRadius: `${numToStandardHtmlUnit(
+                  1
+                )} ${numToStandardHtmlUnit(1)} 0 0`,
+                display: `flex`,
+                justifyContent: `center`,
+                alignItems: `center`,
+              }}
+            ></div>
+            <div
+              style={{
+                width: `${_pageWidthVmin}vmin`,
                 height: `75vmin`,
-                border: `${numToStandardHtmlUnit(0.5)} solid black`,
-                borderRadius: `${numToStandardHtmlUnit(0.5)}`,
+                border: `${numToStandardHtmlUnit(0.75)} solid black`,
               }}
             >
-              {contentsToHtml(_pageWidget(params))}
+              {contentsToHtmlWithInfo(_pageWidget(params)).htmlElements}
             </div>
+            <div
+              style={{
+                width: `${_pageWidthVmin}vmin`,
+                height: `1vmin`,
+                backgroundColor: colors.black,
+                border: `${numToStandardHtmlUnit(0.75)} solid black`,
+                borderRadius: `0 0 ${numToStandardHtmlUnit(
+                  1
+                )} ${numToStandardHtmlUnit(1)}`,
+              }}
+            ></div>
           </body>
         </html>
       )
