@@ -170,6 +170,28 @@ export const box = defineWidgetBuilder({
   htmlTag: `div`,
 });
 
+/** @Note Describes a card. */
+export const card = defineWidgetBuilder({
+  width: size.basedOnContents,
+  height: size.basedOnContents,
+  textSize: 1,
+  textIsBold: false,
+  textIsItalic: false,
+  textColor: colors.black,
+  cornerRadius: 1,
+  background: colors.white,
+  shadowSize: 1,
+  shadowDirection: align.bottomRight,
+  padding: 1,
+  contentAlign: align.center,
+  contentAxis: axis.vertical,
+  contentIsScrollableX: false,
+  contentIsScrollableY: false,
+  contentSpacing: 0,
+  contents: [],
+  htmlTag: `div`,
+});
+
 /** @Note Describes a button. */
 export const button = defineWidgetBuilder({
   width: size.basedOnContents,

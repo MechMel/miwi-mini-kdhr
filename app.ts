@@ -10,6 +10,7 @@ import {
   spacing,
   appBar,
   icons,
+  card,
 } from "./miwi/module";
 
 // Data
@@ -26,88 +27,247 @@ page({
     appBar({
       //background: colors.transparent,
       //textColor: colors.red,
+      contents: `Contacts`,
     }),
     box({
       width: size.grow,
       height: size.grow,
       padding: 1,
-      contentSpacing: 3,
+      contentSpacing: 1,
       contentAlign: align.topCenter,
       //contentIsScrollableX: true,
       contentIsScrollableY: true,
       contents: [
-        box({
-          width: size.basedOnContents,
-          contentAxis: axis.horizontal,
-          contentAlign: align.center,
-          contentSpacing: 1,
-          contents: [
-            button,
-            button({
-              background: colors.red,
-              contents: false,
-            }),
-            button({
-              background: colors.pink,
-              contents: 55,
-            }),
-            button({
-              height: 2,
-              background: colors.orange,
-            }),
-          ],
-        }),
-        box({
-          width: 4,
-          height: 4,
-          cornerRadius: 2,
-          background: `profile_picture.jpg`,
-        }),
-        box({
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
           contents: [
-            button({
-              contents: icons.settings + ` Settings`,
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
             }),
-            button({
-              height: 2,
-              contents: `adasdfas`,
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
             }),
           ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
-        }),
-        button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
-        }),
-        button({
-          background: colors.teal,
-          shadowSize: 1,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        card({
+          width: size.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
         }),
       ],
     }),
