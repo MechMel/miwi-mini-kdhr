@@ -25,10 +25,14 @@ export function readonlyObj<T>(obj: T): Readonly<T> {
 }
 
 // Utilitiy Classes: https://www.typescriptlang.org/docs/handbook/utility-types.html
-export function defineWidgetBuilder(
-  defaultParams: Required<Omit<Widget, `toString`>>
-) {
-  return function (
+export function defineWidgetBuilder<
+  T extends Required<Omit<Widget, `toString`>>
+>(
+  defaultParams: T
+): Required<Widget> & {
+  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
+} {
+  const build: any = function (
     invocationParams?: Partial<Omit<Widget, `htmlTag`>>
   ): Required<Widget> {
     const newWidget: any = {};
@@ -43,6 +47,12 @@ export function defineWidgetBuilder(
       );*/
     };
     return newWidget;
+  };
+  for (const key in defaultParams) {
+    build[key] = defaultParams[key];
+  }
+  return build as Required<Widget> & {
+    (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
   };
 }
 
@@ -195,7 +205,36 @@ export function contentsToHtmlWithInfo(params: {
                   !myInfo.widthGrows
                 ? numToStandardHtmlUnit(params.contents.width as number)
                 : undefined,
+            // If the dev specifies a fixed size, then force the widget to be exactly that size
+            minWidth:
+              typeof params.contents.width === `string`
+                ? params.contents.width
+                : params.contents.width !== size.basedOnContents &&
+                  !myInfo.widthGrows
+                ? numToStandardHtmlUnit(params.contents.width as number)
+                : undefined,
+            maxWidth:
+              typeof params.contents.width === `string`
+                ? params.contents.width
+                : params.contents.width !== size.basedOnContents &&
+                  !myInfo.widthGrows
+                ? numToStandardHtmlUnit(params.contents.width as number)
+                : undefined,
             height:
+              typeof params.contents.height === `string`
+                ? params.contents.height
+                : params.contents.height !== size.basedOnContents &&
+                  !myInfo.heightGrows
+                ? numToStandardHtmlUnit(params.contents.height as number)
+                : undefined,
+            minHeight:
+              typeof params.contents.height === `string`
+                ? params.contents.height
+                : params.contents.height !== size.basedOnContents &&
+                  !myInfo.heightGrows
+                ? numToStandardHtmlUnit(params.contents.height as number)
+                : undefined,
+            maxHeight:
               typeof params.contents.height === `string`
                 ? params.contents.height
                 : params.contents.height !== size.basedOnContents &&
@@ -239,6 +278,8 @@ export function contentsToHtmlWithInfo(params: {
             backgroundSize: _isMaterialImage(params.contents.background)
               ? `cover`
               : undefined,
+            backgroundRepeat: `no-repeat`,
+            backgroundAttachment: `local`,
             boxShadow: `${numToStandardHtmlUnit(
               0.12 *
                 params.contents.shadowSize *
@@ -260,10 +301,10 @@ export function contentsToHtmlWithInfo(params: {
             margin: 0,
             padding: numToStandardHtmlUnit(params.contents.padding),
             overflowX: params.contents.contentIsScrollableX
-              ? `auto` // Scroll when nesscary
+              ? `overlay` // Scroll when nesscary, and float above contents
               : undefined, //`hidden`,
             overflowY: params.contents.contentIsScrollableY
-              ? `auto` // Scroll when nesscary
+              ? `auto` // Scroll when nesscary, and float above contents
               : undefined, //`hidden`,
             flexDirection:
               params.contents.contentAxis === axis.vertical ? `column` : `row`,

@@ -42,9 +42,7 @@ page({
           contentAlign: align.center,
           contentSpacing: 1,
           contents: [
-            button({
-              background: colors.green,
-            }),
+            button,
             button({
               background: colors.red,
               contents: false,
