@@ -1,22 +1,5 @@
-import {
-  page,
-  appData,
-  box,
-  colors,
-  button,
-  align,
-  size,
-  axis,
-  spacing,
-  appBar,
-  icons,
-  card,
-} from "./miwi/module";
-
-// Data
-const data = appData({
-  name: ``,
-});
+import { page, colors, align, size, axis, spacing, icons } from "./miwi/widget";
+import { box, button, appBar, card } from "./miwi/md";
 
 // UI
 page({
