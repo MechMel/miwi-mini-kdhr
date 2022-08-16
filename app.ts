@@ -22,10 +22,17 @@ page({
   name: `Melchiah's App`,
   contentAxis: axis.vertical,
   contents: [
-    appBar(),
+    appBar({
+      //background: colors.transparent,
+      //textColor: colors.red,
+    }),
     box({
+      width: size.grow,
+      height: size.grow,
       padding: 1,
       contentSpacing: 1,
+      contentAlign: align.topCenter,
+      //contentIsScrollableY: true,
       contents: [
         box({
           width: size.basedOnContents,
@@ -44,6 +51,10 @@ page({
               background: colors.pink,
               contents: 55,
             }),
+            button({
+              height: 2,
+              background: colors.orange,
+            }),
           ],
         }),
         box({
@@ -54,6 +65,7 @@ page({
         }),
         box({
           contentAxis: axis.horizontal,
+          contentSpacing: 1,
           contents: [
             button({
               contents: icons.settings + ` Settings`,
@@ -64,8 +76,38 @@ page({
             }),
           ],
         }),
+        /*button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
         button({
-          contents: icons.settings,
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),*/
+        button({
+          background: colors.teal,
+          shadowSize: 1,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
         }),
       ],
     }),

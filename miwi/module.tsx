@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as React from "react";
 import { renderToString } from "react-dom/server";
+import { _iconsObj } from "./mdIcons";
 import {
   contentsToHtmlWithInfo,
   defineWidgetBuilder,
@@ -37,11 +38,15 @@ export interface Widget {
   textIsBold: boolean;
   textIsItalic: boolean;
   textColor: RGB;
-  background: Material;
   cornerRadius: number;
+  background: Material;
+  shadowSize: number;
+  shadowDirection: Align;
   padding: Padding;
   contentAlign: Align;
   contentAxis: Axis;
+  contentIsScrollableX: boolean;
+  contentIsScrollableY: boolean;
   contentSpacing: Spacing;
   contents: Contents;
   htmlTag: string;
@@ -113,25 +118,9 @@ export type Icon = { icon: string; toString: () => string };
 export function _isIcon(possibleIcon: any): possibleIcon is Icon {
   return exists(possibleIcon?.icon);
 }
-export const icons = _buildIconsObj([`settings`]);
+export const icons = _iconsObj;
 export const _inlineContentOpenTag = `$$#@%`;
 export const _inlineContentCloseTag = `%@#$$`;
-function _buildIconsObj<T1 extends T2[] | [], T2 extends string>(
-  unformattedIcons: T1
-): { readonly [Key in T1[number]]: Icon } {
-  const formattedIcons: any = {};
-  for (const i in unformattedIcons) {
-    formattedIcons[unformattedIcons[i]] = {
-      icon: unformattedIcons[i],
-      toString: function () {
-        return `$$#@%${JSON.stringify({
-          icon: unformattedIcons[i],
-        })}%@#$$`;
-      },
-    };
-  }
-  return readonlyObj(formattedIcons) as { readonly [Key in T1[number]]: Icon };
-}
 
 /** @Note Describes the styling of the background of a widget. */
 export type Material = RGB | ImageRef;
@@ -167,11 +156,15 @@ export const box = defineWidgetBuilder({
   textIsBold: false,
   textIsItalic: false,
   textColor: colors.black,
-  background: colors.transparent,
   cornerRadius: 0,
+  background: colors.transparent,
+  shadowSize: 0,
+  shadowDirection: align.center,
   padding: 0,
   contentAlign: align.center,
   contentAxis: axis.vertical,
+  contentIsScrollableX: false,
+  contentIsScrollableY: false,
   contentSpacing: 0,
   contents: [],
   htmlTag: `div`,
@@ -185,11 +178,15 @@ export const button = defineWidgetBuilder({
   textIsBold: false,
   textIsItalic: false,
   textColor: colors.white,
-  background: colors.blue,
   cornerRadius: 0.5,
+  background: colors.blue,
+  shadowSize: 0,
+  shadowDirection: align.bottomRight,
   padding: 0.5,
   contentAlign: align.center,
-  contentAxis: axis.vertical,
+  contentAxis: axis.horizontal,
+  contentIsScrollableX: false,
+  contentIsScrollableY: false,
   contentSpacing: 0,
   contents: `Button`,
   htmlTag: `button`,
@@ -203,11 +200,15 @@ export const appBar = defineWidgetBuilder({
   textIsBold: true,
   textIsItalic: false,
   textColor: colors.white,
-  background: colors.blue,
   cornerRadius: 0,
+  background: colors.blue,
+  shadowSize: 2,
+  shadowDirection: align.bottomCenter,
   padding: 1,
   contentAlign: align.center,
   contentAxis: axis.horizontal,
+  contentIsScrollableX: false,
+  contentIsScrollableY: false,
   contentSpacing: spacing.spaceBetween,
   contents: `Untitled`,
   htmlTag: `nav`,
@@ -217,7 +218,7 @@ export const appBar = defineWidgetBuilder({
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
-export const _pageWidthVmin = 43;
+export const _pageWidthVmin = 40;
 const _pageWidget = defineWidgetBuilder({
   width: `100%`,
   height: `100%`,
@@ -225,11 +226,15 @@ const _pageWidget = defineWidgetBuilder({
   textIsBold: true,
   textIsItalic: false,
   textColor: colors.black,
-  background: colors.almostWhite,
   cornerRadius: 0,
+  background: colors.almostWhite,
+  shadowSize: 0,
+  shadowDirection: align.center,
   padding: 0,
   contentAlign: align.topCenter,
   contentAxis: axis.vertical,
+  contentIsScrollableX: false,
+  contentIsScrollableY: false,
   contentSpacing: 0,
   contents: [],
   htmlTag: `div`,
@@ -358,6 +363,9 @@ export function page(params = _defaultPageParams()) {
                 width: `${_pageWidthVmin}vmin`,
                 height: `75vmin`,
                 border: `${numToStandardHtmlUnit(0.75)} solid black`,
+                margin: 0,
+                padding: 0,
+                overflow: `hidden`,
               }}
             >
               {

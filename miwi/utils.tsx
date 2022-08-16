@@ -1,5 +1,6 @@
 import * as React from "react";
 import { renderToString } from "react-dom/server";
+import { _numIconTag } from "./mdIcons";
 import {
   Contents,
   Widget,
@@ -163,7 +164,9 @@ export function contentsToHtmlWithInfo(params: {
           fontSize: numToIconSize(params.parent.textSize),
         }}
       >
-        {params.contents.icon}
+        {params.contents.icon.startsWith(_numIconTag)
+          ? params.contents.icon.substring(_numIconTag.length)
+          : params.contents.icon}
       </span>
     );
   } else {
@@ -218,6 +221,12 @@ export function contentsToHtmlWithInfo(params: {
                 ? `stretch`
                 : undefined,
             boxSizing: `border-box`,
+            fontFamily: `Roboto`,
+            fontSize: numToFontSize(params.contents.textSize),
+            fontWeight: params.contents.textIsBold ? `bold` : undefined,
+            fontStyle: params.contents.textIsItalic ? `italic` : undefined,
+            color: params.contents.textColor,
+            borderRadius: numToStandardHtmlUnit(params.contents.cornerRadius),
             backgroundColor: _isMaterialImage(params.contents.background)
               ? undefined
               : params.contents.background,
@@ -230,13 +239,18 @@ export function contentsToHtmlWithInfo(params: {
             backgroundSize: _isMaterialImage(params.contents.background)
               ? `cover`
               : undefined,
-            borderRadius: numToStandardHtmlUnit(params.contents.cornerRadius),
+            boxShadow: `${numToStandardHtmlUnit(
+              0.12 *
+                params.contents.shadowSize *
+                params.contents.shadowDirection.x
+            )} ${numToStandardHtmlUnit(
+              -0.12 *
+                params.contents.shadowSize *
+                params.contents.shadowDirection.y
+            )} ${numToStandardHtmlUnit(
+              0.225 * params.contents.shadowSize
+            )} ${numToStandardHtmlUnit(0)} ${colors.grey}`,
             border: `none`,
-            color: params.contents.textColor,
-            fontFamily: `Roboto`,
-            fontSize: numToFontSize(params.contents.textSize),
-            fontWeight: params.contents.textIsBold ? `bold` : undefined,
-            fontStyle: params.contents.textIsItalic ? `italic` : undefined,
             textAlign:
               params.contents.contentAlign.x === -1
                 ? `left`
@@ -245,6 +259,12 @@ export function contentsToHtmlWithInfo(params: {
                 : `right`,
             margin: 0,
             padding: numToStandardHtmlUnit(params.contents.padding),
+            overflowX: params.contents.contentIsScrollableX
+              ? `auto` // Scroll when nesscary
+              : undefined, //`hidden`,
+            overflowY: params.contents.contentIsScrollableY
+              ? `auto` // Scroll when nesscary
+              : undefined, //`hidden`,
             flexDirection:
               params.contents.contentAxis === axis.vertical ? `column` : `row`,
             // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
