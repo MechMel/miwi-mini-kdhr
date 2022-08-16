@@ -275,12 +275,12 @@ export function contentsToHtmlWithInfo(params: {
                   ? params.contents.contentAlign.y === 1
                     ? `flex-start`
                     : params.contents.contentAlign.y === 0
-                    ? `center`
+                    ? `safe center`
                     : `flex-end`
                   : params.contents.contentAlign.x === -1
                   ? `flex-start`
                   : params.contents.contentAlign.x === 0
-                  ? `center`
+                  ? `safe center`
                   : `flex-end`
                 : params.contents.contentSpacing === spacing.spaceBetween &&
                   childrenInfo.htmlElements.length === 1
@@ -292,12 +292,12 @@ export function contentsToHtmlWithInfo(params: {
                 ? params.contents.contentAlign.x === -1
                   ? `flex-start`
                   : params.contents.contentAlign.x === 0
-                  ? `center`
+                  ? `safe center`
                   : `flex-end`
                 : params.contents.contentAlign.y === 1
                 ? `flex-start`
                 : params.contents.contentAlign.y === 0
-                ? `center`
+                ? `safe center`
                 : `flex-end`,
             rowGap:
               params.contents.contentAxis === axis.vertical &&

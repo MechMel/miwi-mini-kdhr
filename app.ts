@@ -21,6 +21,7 @@ const data = appData({
 page({
   name: `Melchiah's App`,
   contentAxis: axis.vertical,
+  background: colors.transparent,
   contents: [
     appBar({
       //background: colors.transparent,
@@ -30,9 +31,10 @@ page({
       width: size.grow,
       height: size.grow,
       padding: 1,
-      contentSpacing: 1,
+      contentSpacing: 3,
       contentAlign: align.topCenter,
-      //contentIsScrollableY: true,
+      //contentIsScrollableX: true,
+      contentIsScrollableY: true,
       contents: [
         box({
           width: size.basedOnContents,
@@ -76,10 +78,6 @@ page({
             }),
           ],
         }),
-        /*button({
-          background: colors.red,
-          contents: `This is my button. ${icons.remove_shopping_cart}`,
-        }),
         button({
           background: colors.red,
           contents: `This is my button. ${icons.remove_shopping_cart}`,
@@ -103,7 +101,11 @@ page({
         button({
           background: colors.red,
           contents: `This is my button. ${icons.remove_shopping_cart}`,
-        }),*/
+        }),
+        button({
+          background: colors.red,
+          contents: `This is my button. ${icons.remove_shopping_cart}`,
+        }),
         button({
           background: colors.teal,
           shadowSize: 1,

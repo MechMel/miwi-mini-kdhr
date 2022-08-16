@@ -346,10 +346,9 @@ export function page(params = _defaultPageParams()) {
           >
             <div
               style={{
-                width: `${_pageWidthVmin}vmin`,
-                height: `1vmin`,
+                width: `${_pageWidthVmin + 4}vmin`,
+                height: `4vmin`,
                 backgroundColor: colors.black,
-                border: `${numToStandardHtmlUnit(0.75)} solid black`,
                 borderRadius: `${numToStandardHtmlUnit(
                   1
                 )} ${numToStandardHtmlUnit(1)} 0 0`,
@@ -360,27 +359,58 @@ export function page(params = _defaultPageParams()) {
             ></div>
             <div
               style={{
-                width: `${_pageWidthVmin}vmin`,
-                height: `75vmin`,
-                border: `${numToStandardHtmlUnit(0.75)} solid black`,
                 margin: 0,
                 padding: 0,
-                overflow: `hidden`,
+                display: `flex`,
+                justifyContent: `center`,
+                alignItems: `center`,
+                flexDirection: `row`,
               }}
             >
-              {
-                contentsToHtmlWithInfo({
-                  contents: _pageWidget(params),
-                  parent: box(),
-                }).htmlElements
-              }
+              <div
+                style={{
+                  width: `2vmin`,
+                  height: `75vmin`,
+                  backgroundColor: colors.black,
+                  display: `flex`,
+                  justifyContent: `center`,
+                  alignItems: `center`,
+                }}
+              ></div>
+              <div
+                style={{
+                  width: `${_pageWidthVmin}vmin`,
+                  height: `75vmin`,
+                  //border: `${numToStandardHtmlUnit(0.75)} solid black`,
+                  margin: 0,
+                  padding: 0,
+                  overflow: `hidden`,
+                }}
+              >
+                {
+                  contentsToHtmlWithInfo({
+                    contents: _pageWidget(params),
+                    parent: box(),
+                  }).htmlElements
+                }
+              </div>
+              <div
+                style={{
+                  width: `2vmin`,
+                  height: `75vmin`,
+                  backgroundColor: colors.black,
+                  display: `flex`,
+                  justifyContent: `center`,
+                  alignItems: `center`,
+                }}
+              ></div>
             </div>
+
             <div
               style={{
-                width: `${_pageWidthVmin}vmin`,
-                height: `1vmin`,
+                width: `${_pageWidthVmin + 4}vmin`,
+                height: `4vmin`,
                 backgroundColor: colors.black,
-                border: `${numToStandardHtmlUnit(0.75)} solid black`,
                 borderRadius: `0 0 ${numToStandardHtmlUnit(
                   1
                 )} ${numToStandardHtmlUnit(1)}`,
