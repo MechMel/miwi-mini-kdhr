@@ -13,13 +13,15 @@ page({
       contents: `Contacts`,
     }),
     box({
-      width: size.grow,
-      height: size.grow,
+      width: size.basedOnContents,
+      height: size.basedOnContents,
+      background: colors.red,
       padding: 1,
       contentSpacing: 1,
       contentAlign: align.topCenter,
       //contentIsScrollableX: true,
-      contentIsScrollableY: true,
+      //contentIsScrollableY: true,
+      contentAxis: axis.z,
       contents: [
         card({
           width: size.grow,
@@ -54,7 +56,12 @@ page({
             }),
           ],
         }),
-        card({
+        box({
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [button.outlined, button.solid, button.round, button.pill],
+        }),
+        /*card({
           width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
@@ -251,7 +258,7 @@ page({
               ],
             }),
           ],
-        }),
+        }),*/
       ],
     }),
   ],

@@ -14,12 +14,6 @@ import { exists, readonlyObj, print, isString } from "./utils";
 // SECTION: Contents
 export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
 type _SingleContentTypes = string | boolean | number | Icon | Widget;
-type _ContentCompilationResults = {
-  htmlElements: (JSX.Element | string)[];
-  widthGrows: boolean;
-  heightGrows: boolean;
-  greatestZIndex: number;
-};
 type _contentCompiler = {
   isThisType: (contents: Contents) => boolean;
   compile: (params: {
@@ -27,6 +21,14 @@ type _contentCompiler = {
     parent: Widget;
     startZIndex: number;
   }) => _ContentCompilationResults;
+};
+type _ContentCompilationResults = {
+  htmlElements: (JSX.Element | string)[];
+  maxWidth: number;
+  sumOfWidths: number;
+  maxHeight: number;
+  sumOfHeights: number;
+  greatestZIndex: number;
 };
 const _contentCompilers: _contentCompiler[] = [];
 const _addNewContentCompiler = (newCompiler: _contentCompiler) =>
@@ -61,12 +63,14 @@ _addNewContentCompiler({
     // We'll split arrays into their individual elements and recurssively convert them to html.
     const myInfo: _ContentCompilationResults = {
       htmlElements: [] as (JSX.Element | string)[],
-      widthGrows: false,
-      heightGrows: false,
+      maxWidth: 0,
+      sumOfWidths: 0,
+      maxHeight: 0,
+      sumOfHeights: 0,
       greatestZIndex: params.startZIndex,
     };
     for (let i in params.contents) {
-      const thisWidgetInfo = compileContentsToHtml({
+      const someWidgetInfo = compileContentsToHtml({
         contents: params.contents[i],
         parent: params.parent,
         startZIndex:
@@ -74,12 +78,14 @@ _addNewContentCompiler({
             ? myInfo.greatestZIndex + 1
             : params.startZIndex,
       });
-      myInfo.htmlElements.push(thisWidgetInfo.htmlElements[0]);
-      myInfo.widthGrows = thisWidgetInfo.widthGrows || myInfo.widthGrows;
-      myInfo.heightGrows = thisWidgetInfo.heightGrows || myInfo.heightGrows;
+      myInfo.htmlElements.push(someWidgetInfo.htmlElements[0]);
+      myInfo.maxWidth = Math.max(someWidgetInfo.maxWidth, myInfo.maxWidth);
+      myInfo.sumOfWidths += someWidgetInfo.sumOfWidths;
+      myInfo.maxHeight = Math.max(someWidgetInfo.maxHeight, myInfo.maxHeight);
+      myInfo.sumOfHeights += someWidgetInfo.sumOfHeights;
       myInfo.greatestZIndex = Math.max(
         myInfo.greatestZIndex,
-        thisWidgetInfo.greatestZIndex
+        someWidgetInfo.greatestZIndex
       );
     }
     return myInfo;
@@ -102,6 +108,8 @@ export interface Widget {
   textIsItalic: boolean;
   textColor: RGB;
   cornerRadius: number;
+  outlineColor: RGB;
+  outlineSize: number;
   background: Material;
   shadowSize: number;
   shadowDirection: Align;
@@ -123,7 +131,11 @@ const widgetStyleBuilders: ((params: {
   parent: Widget;
   childrenInfo: _ContentCompilationResults;
   startZIndex: number;
-}) => { [key: string]: string | number | boolean | undefined })[] = [];
+}) => _WidgetStylePart)[] = [];
+type _WidgetStylePart = {
+  preferParent?: { [key: string]: string | number | boolean | undefined };
+  preferChild?: { [key: string]: string | number | boolean | undefined };
+};
 
 /** @About Converts a widget to an html element along with some other stats. */
 _addNewContentCompiler({
@@ -133,13 +145,47 @@ _addNewContentCompiler({
     parent: Widget;
     startZIndex: number;
   }): _ContentCompilationResults {
+    // Compile the children
     const childrenInfo = compileContentsToHtml({
       contents: params.contents.contents,
       parent: params.contents,
       startZIndex: params.startZIndex,
     });
+
+    // Compile the styles
+    const shouldUseTwoElements = params.contents.contentAxis === axis.z;
+    const parentStyle: any = {};
+    const childStyle: any = {
+      flexGrow: 1,
+      alignSelf: `stretch`,
+      backgroundColor: `green`,
+    };
+    for (const i in widgetStyleBuilders) {
+      const newProps = widgetStyleBuilders[i]({
+        widget: params.contents,
+        parent: params.parent,
+        childrenInfo: childrenInfo,
+        startZIndex: params.startZIndex,
+      });
+      for (const key in newProps.preferParent) {
+        (parentStyle as any)[key] = (newProps.preferParent as any)[key];
+      }
+      for (const key in newProps.preferChild) {
+        if (shouldUseTwoElements) {
+          (childStyle as any)[key] = (newProps.preferChild as any)[key];
+        } else {
+          (parentStyle as any)[key] = (newProps.preferChild as any)[key];
+        }
+      }
+    }
+
+    // Compile the widget
     return {
-      widthGrows: _getSizeGrows(params.contents.width, childrenInfo.widthGrows),
+      maxWidth: _isSizeGrowConfig(params.contents.width)
+        ? Infinity
+        : params.contents.width === size.basedOnContents
+        ? childrenInfo.maxWidth
+        : params.contents.width,
       heightGrows: _getSizeGrows(
         params.contents.height,
         childrenInfo.heightGrows
@@ -147,34 +193,18 @@ _addNewContentCompiler({
       greatestZIndex: childrenInfo.greatestZIndex,
       htmlElements: [
         React.createElement(
+          // Html Tag
           params.contents.htmlTag,
-          {
-            style: (function () {
-              const styleSoFar = {
-                // Universal Styling
-                display: `flex`,
-                boxSizing: `border-box`,
-                border: `none`,
-                fontFamily: `Roboto`,
-                margin: 0,
-              };
-              for (const i in widgetStyleBuilders) {
-                const newProps = widgetStyleBuilders[i]({
-                  widget: params.contents,
-                  parent: params.parent,
-                  childrenInfo: childrenInfo,
-                  startZIndex: params.startZIndex,
-                });
-                for (const key in newProps) {
-                  (styleSoFar as any)[key] = (newProps as any)[key];
-                }
-              }
-              return styleSoFar;
-            })(),
-          },
+
+          // Style
+          { style: parentStyle },
 
           // Contents
-          childrenInfo.htmlElements
+          shouldUseTwoElements ? (
+            <div style={childStyle}>{childrenInfo.htmlElements}</div>
+          ) : (
+            childrenInfo.htmlElements
+          )
         ),
       ],
     };
@@ -236,30 +266,38 @@ widgetStyleBuilders.push(function (params: {
     params.childrenInfo.heightGrows
   );
   return {
-    // Using minWidth and maxWidth tells css to not override the size of this element
-    width: exactWidth,
-    minWidth: exactWidth,
-    maxWidth: exactWidth,
-    height: exactHeight,
-    minHeight: exactHeight,
-    maxHeight: exactHeight,
-    flexGrow:
-      params.parent.contentAxis === axis.vertical
-        ? _isSizeGrowConfig(params.widget.height)
-          ? params.widget.height.flex
-          : heightGrows
+    preferParent: {
+      display: `flex`,
+      boxSizing: `border-box`,
+      // Using minWidth and maxWidth tells css to not override the size of this element
+      width: exactWidth,
+      minWidth: exactWidth,
+      maxWidth: exactWidth,
+      height: exactHeight,
+      minHeight: exactHeight,
+      maxHeight: exactHeight,
+      flexGrow:
+        params.parent.contentAxis === axis.vertical
+          ? _isSizeGrowConfig(params.widget.height)
+            ? params.widget.height.flex
+            : heightGrows
+            ? 1
+            : undefined
+          : _isSizeGrowConfig(params.widget.width)
+          ? params.widget.width.flex
+          : widthGrows
           ? 1
-          : undefined
-        : _isSizeGrowConfig(params.widget.width)
-        ? params.widget.width.flex
-        : widthGrows
-        ? 1
-        : undefined,
-    alignSelf:
-      (params.parent.contentAxis === axis.horizontal && heightGrows) ||
-      (params.parent.contentAxis === axis.vertical && widthGrows)
-        ? `stretch`
-        : undefined,
+          : undefined,
+      alignSelf:
+        (params.parent.contentAxis === axis.horizontal && heightGrows) ||
+        (params.parent.contentAxis === axis.vertical && widthGrows)
+          ? `stretch`
+          : undefined,
+    },
+    preferChild: {
+      display: `flex`,
+      boxSizing: `border-box`,
+    },
   };
 });
 
@@ -299,33 +337,42 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
   const _isMaterialImage = (material: Material): material is ImageRef =>
     material[0] !== `#`;
   return {
-    // Corner Radius
-    borderRadius: numToStandardHtmlUnit(params.widget.cornerRadius),
+    preferParent: {
+      // Corner Radius
+      borderRadius: numToStandardHtmlUnit(params.widget.cornerRadius),
 
-    // Background
-    backgroundColor: _isMaterialImage(params.widget.background)
-      ? undefined
-      : params.widget.background,
-    backgroundImage: _isMaterialImage(params.widget.background)
-      ? `url(${params.widget.background})`
-      : undefined,
-    backgroundPosition: _isMaterialImage(params.widget.background)
-      ? `center`
-      : undefined,
-    backgroundSize: _isMaterialImage(params.widget.background)
-      ? `cover`
-      : undefined,
-    backgroundRepeat: `no-repeat`,
-    backgroundAttachment: `local`,
+      // Border
+      border: `none`,
+      outline: `${numToStandardHtmlUnit(params.widget.outlineSize)} solid ${
+        params.widget.outlineColor
+      }`,
+      outlineOffset: `-` + numToStandardHtmlUnit(params.widget.outlineSize),
 
-    // Shadow
-    boxShadow: `${numToStandardHtmlUnit(
-      0.12 * params.widget.shadowSize * params.widget.shadowDirection.x
-    )} ${numToStandardHtmlUnit(
-      -0.12 * params.widget.shadowSize * params.widget.shadowDirection.y
-    )} ${numToStandardHtmlUnit(
-      0.225 * params.widget.shadowSize
-    )} ${numToStandardHtmlUnit(0)} ${colors.grey}`,
+      // Background
+      backgroundColor: _isMaterialImage(params.widget.background)
+        ? undefined
+        : params.widget.background,
+      backgroundImage: _isMaterialImage(params.widget.background)
+        ? `url(${params.widget.background})`
+        : undefined,
+      backgroundPosition: _isMaterialImage(params.widget.background)
+        ? `center`
+        : undefined,
+      backgroundSize: _isMaterialImage(params.widget.background)
+        ? `cover`
+        : undefined,
+      backgroundRepeat: `no-repeat`,
+      backgroundAttachment: `local`,
+
+      // Shadow
+      boxShadow: `${numToStandardHtmlUnit(
+        0.12 * params.widget.shadowSize * params.widget.shadowDirection.x
+      )} ${numToStandardHtmlUnit(
+        -0.12 * params.widget.shadowSize * params.widget.shadowDirection.y
+      )} ${numToStandardHtmlUnit(
+        0.225 * params.widget.shadowSize
+      )} ${numToStandardHtmlUnit(0)} ${colors.grey}`,
+    },
   };
 });
 
@@ -339,7 +386,9 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
 export type Padding = number; //Num | [Num, Num] | [Num, Num, Num, Num];
 widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
-    padding: numToStandardHtmlUnit(params.widget.padding),
+    preferParent: {
+      padding: numToStandardHtmlUnit(params.widget.padding),
+    },
   };
 });
 
@@ -363,46 +412,87 @@ export const align = readonlyObj({
   bottomRight: { x: 1, y: -1 } as Align,
 });
 widgetStyleBuilders.push(
-  (params: { widget: Widget; childrenInfo: _ContentCompilationResults }) => {
+  (params: {
+    widget: Widget;
+    parent: Widget;
+    childrenInfo: _ContentCompilationResults;
+  }) => {
+    const myPosition =
+      params.parent.contentAxis === axis.z ? `absolute` : `relative`;
     return {
-      // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
-      justifyContent:
-        // Exact spacing is handled through grid gap
-        typeof params.widget.contentSpacing === `number`
-          ? params.widget.contentAxis === axis.vertical
-            ? params.widget.contentAlign.y === 1
+      preferParent: {
+        // Algin self when in a stack
+        position: myPosition,
+        margin:
+          params.parent.contentAxis === axis.z
+            ? `${params.parent.contentAlign.x === 0 ? `auto` : 0} ${
+                params.parent.contentAlign.y === 0 ? `auto` : 0
+              }`
+            : 0,
+        left:
+          params.parent.contentAxis === axis.z &&
+          params.parent.contentAlign.x === -1
+            ? 0
+            : undefined,
+        top:
+          params.parent.contentAxis === axis.z &&
+          params.parent.contentAlign.y === 1
+            ? 0
+            : undefined,
+        right:
+          params.parent.contentAxis === axis.z &&
+          params.parent.contentAlign.x === 1
+            ? 0
+            : undefined,
+        bottom:
+          params.parent.contentAxis === axis.z &&
+          params.parent.contentAlign.y === -1
+            ? 0
+            : undefined,
+
+        // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
+        justifyContent:
+          // Exact spacing is handled through grid gap
+          typeof params.widget.contentSpacing === `number`
+            ? params.widget.contentAxis === axis.vertical
+              ? params.widget.contentAlign.y === 1
+                ? `flex-start`
+                : params.widget.contentAlign.y === 0
+                ? `safe center`
+                : `flex-end`
+              : params.widget.contentAlign.x === -1
               ? `flex-start`
-              : params.widget.contentAlign.y === 0
+              : params.widget.contentAlign.x === 0
               ? `safe center`
               : `flex-end`
-            : params.widget.contentAlign.x === -1
+            : params.widget.contentSpacing === spacing.spaceBetween &&
+              params.childrenInfo.htmlElements.length === 1
+            ? // For whatever reason, space-between with one item puts it at the start instead of centering it.
+              spacing.spaceAround
+            : params.widget.contentSpacing,
+        alignItems:
+          params.widget.contentAxis === axis.vertical
+            ? params.widget.contentAlign.x === -1
+              ? `flex-start`
+              : params.widget.contentAlign.x === 0
+              ? `safe center`
+              : `flex-end`
+            : params.widget.contentAlign.y === 1
             ? `flex-start`
-            : params.widget.contentAlign.x === 0
+            : params.widget.contentAlign.y === 0
             ? `safe center`
-            : `flex-end`
-          : params.widget.contentSpacing === spacing.spaceBetween &&
-            params.childrenInfo.htmlElements.length === 1
-          ? // For whatever reason, space-between with one item puts it at the start instead of centering it.
-            spacing.spaceAround
-          : params.widget.contentSpacing,
-      alignItems:
-        params.widget.contentAxis === axis.vertical
-          ? params.widget.contentAlign.x === -1
-            ? `flex-start`
+            : `flex-end`,
+        textAlign:
+          params.widget.contentAlign.x === -1
+            ? `left`
             : params.widget.contentAlign.x === 0
-            ? `safe center`
-            : `flex-end`
-          : params.widget.contentAlign.y === 1
-          ? `flex-start`
-          : params.widget.contentAlign.y === 0
-          ? `safe center`
-          : `flex-end`,
-      textAlign:
-        params.widget.contentAlign.x === -1
-          ? `left`
-          : params.widget.contentAlign.x === 0
-          ? `center`
-          : `right`,
+            ? `center`
+            : `right`,
+      },
+      preferChild: {
+        position:
+          params.widget.contentAxis === axis.z ? `relative` : myPosition,
+      },
     };
   }
 );
@@ -422,9 +512,11 @@ export const axis = readonlyObj({
 });
 widgetStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
   return {
-    flexDirection:
-      params.widget.contentAxis === axis.vertical ? `column` : `row`,
-    zIndex: params.startZIndex,
+    preferParent: {
+      flexDirection:
+        params.widget.contentAxis === axis.vertical ? `column` : `row`,
+      zIndex: params.startZIndex,
+    },
   };
 });
 
@@ -437,14 +529,16 @@ widgetStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
 // SECTION: Content Is Scrollable
 widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
-    overflowX: params.widget.contentIsScrollableX
-      ? `overlay` // Scroll when nesscary, and float above contents
-      : undefined, //`hidden`,
-    overflowY: params.widget.contentIsScrollableY
-      ? `auto` // Scroll when nesscary, and float above contents
-      : undefined, //`hidden`,
-    scrollbarWidth: `thin`,
-    scrollbarColor: `#e3e3e3 transparent`,
+    preferParent: {
+      overflowX: params.widget.contentIsScrollableX
+        ? `overlay` // Scroll when nesscary, and float above contents
+        : undefined, //`hidden`,
+      overflowY: params.widget.contentIsScrollableY
+        ? `auto` // Scroll when nesscary, and float above contents
+        : undefined, //`hidden`,
+      scrollbarWidth: `thin`,
+      scrollbarColor: `#e3e3e3 transparent`,
+    },
   };
 });
 
@@ -468,16 +562,18 @@ export const spacing = readonlyObj({
 });
 widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
-    rowGap:
-      params.widget.contentAxis === axis.vertical &&
-      typeof params.widget.contentSpacing === `number`
-        ? numToStandardHtmlUnit(params.widget.contentSpacing)
-        : undefined,
-    columnGap:
-      params.widget.contentAxis === axis.horizontal &&
-      typeof params.widget.contentSpacing === `number`
-        ? numToStandardHtmlUnit(params.widget.contentSpacing)
-        : undefined,
+    preferChild: {
+      rowGap:
+        params.widget.contentAxis === axis.vertical &&
+        typeof params.widget.contentSpacing === `number`
+          ? numToStandardHtmlUnit(params.widget.contentSpacing)
+          : undefined,
+      columnGap:
+        params.widget.contentAxis === axis.horizontal &&
+        typeof params.widget.contentSpacing === `number`
+          ? numToStandardHtmlUnit(params.widget.contentSpacing)
+          : undefined,
+    },
   };
 });
 
@@ -490,10 +586,16 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
 // SECTION: Text Style
 widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
-    fontSize: numToFontSize(params.widget.textSize),
-    fontWeight: params.widget.textIsBold ? `bold` : undefined,
-    fontStyle: params.widget.textIsItalic ? `italic` : undefined,
-    color: params.widget.textColor,
+    preferParent: {
+      fontFamily: `Roboto`,
+    },
+    preferChild: {
+      fontFamily: `Roboto`,
+      fontSize: numToFontSize(params.widget.textSize),
+      fontWeight: params.widget.textIsBold ? `bold` : undefined,
+      fontStyle: params.widget.textIsItalic ? `italic` : undefined,
+      color: params.widget.textColor,
+    },
   };
 });
 
@@ -664,12 +766,13 @@ _addNewContentCompiler({
 //
 
 // SECTION: Widget Template
+type _WidgetTemplate = Required<Widget> & {
+  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
+};
 /** @About This is a shorthand for creating custom widgets */
 export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
   defaultParams: T
-): Required<Widget> & {
-  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
-} {
+): _WidgetTemplate {
   const build: any = function (
     invocationParams?: Partial<Omit<Widget, `htmlTag`>>
   ): Required<Widget> {
@@ -710,6 +813,8 @@ const _pageWidget = widgetTemplate({
   textIsItalic: false,
   textColor: colors.black,
   cornerRadius: 0,
+  outlineColor: colors.transparent,
+  outlineSize: 0,
   background: colors.almostWhite,
   shadowSize: 0,
   shadowDirection: align.center,
@@ -878,6 +983,8 @@ export function page(params = _defaultPageParams()) {
                       width: size.basedOnContents,
                       height: size.basedOnContents,
                       cornerRadius: 0,
+                      outlineColor: colors.transparent,
+                      outlineSize: 0,
                       background: colors.transparent,
                       shadowSize: 0,
                       shadowDirection: align.center,
