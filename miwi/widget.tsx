@@ -3,15 +3,7 @@ import * as path from "path";
 import * as React from "react";
 import { renderToString } from "react-dom/server";
 import { _iconsObj, _numIconTag } from "./mdIcons";
-import {
-  exists,
-  numToStandardHtmlUnit,
-  readonlyObj,
-  print,
-  numToFontSize,
-  numToIconSize,
-  isString,
-} from "./utils";
+import { exists, readonlyObj, print, isString } from "./utils";
 
 //
 //
@@ -280,6 +272,10 @@ widgetStyleBuilders.push(function (params: {
   };
 });
 
+function numToStandardHtmlUnit(num: number) {
+  return `${num * (_pageWidthVmin / 24)}vmin`;
+}
+
 //
 //
 //
@@ -510,6 +506,10 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
   };
 });
 
+function numToFontSize(num: number) {
+  return numToStandardHtmlUnit(0.825 * num);
+}
+
 //
 //
 //
@@ -556,6 +556,10 @@ _addNewContentCompiler({
     };
   },
 });
+
+function numToIconSize(num: number) {
+  return numToStandardHtmlUnit(0.9 * num);
+}
 
 //
 //
@@ -707,7 +711,7 @@ export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
-export const _pageWidthVmin = 40;
+const _pageWidthVmin = 40;
 const _pageWidget = widgetTemplate({
   width: `100%`,
   height: `100%`,
