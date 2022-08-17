@@ -19,7 +19,89 @@ import {
 //
 //
 
+// SECTION: Contents
+export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
+type _SingleContentTypes = string | boolean | number | Icon | Widget;
+type _ContentCompilationResults = {
+  htmlElements: (JSX.Element | string)[];
+  widthGrows: boolean;
+  heightGrows: boolean;
+  greatestZIndex: number;
+};
+type _contentCompiler = {
+  isThisType: (contents: Contents) => boolean;
+  compile: (params: {
+    contents: any;
+    parent: Widget;
+    startZIndex: number;
+  }) => _ContentCompilationResults;
+};
+const _contentCompilers: _contentCompiler[] = [];
+const _addNewContentCompiler = (newCompiler: _contentCompiler) =>
+  _contentCompilers.push(newCompiler);
+export const compileContentsToHtml = function (params: {
+  contents: Contents;
+  parent: Widget;
+  startZIndex: number;
+}): _ContentCompilationResults {
+  for (const i in _contentCompilers) {
+    if (_contentCompilers[i].isThisType(params.contents)) {
+      return _contentCompilers[i].compile({
+        contents: params.contents,
+        parent: params.parent,
+        startZIndex: params.startZIndex,
+      });
+    }
+  }
+  throw `Encountered an error in "miwi/widget.tsx.compileContentsToHtml". Could not find a content compiler for ${JSON.stringify(
+    params.contents,
+    null,
+    2
+  )}`;
+};
+_addNewContentCompiler({
+  isThisType: (contents: Contents) => Array.isArray(contents),
+  compile: function (params: {
+    contents: _SingleContentTypes[];
+    parent: Widget;
+    startZIndex: number;
+  }): _ContentCompilationResults {
+    // We'll split arrays into their individual elements and recurssively convert them to html.
+    const myInfo: _ContentCompilationResults = {
+      htmlElements: [] as (JSX.Element | string)[],
+      widthGrows: false,
+      heightGrows: false,
+      greatestZIndex: params.startZIndex,
+    };
+    for (let i in params.contents) {
+      const thisWidgetInfo = compileContentsToHtml({
+        contents: params.contents[i],
+        parent: params.parent,
+        startZIndex:
+          params.parent.contentAxis === axis.z
+            ? myInfo.greatestZIndex + 1
+            : params.startZIndex,
+      });
+      myInfo.htmlElements.push(thisWidgetInfo.htmlElements[0]);
+      myInfo.widthGrows = thisWidgetInfo.widthGrows || myInfo.widthGrows;
+      myInfo.heightGrows = thisWidgetInfo.heightGrows || myInfo.heightGrows;
+      myInfo.greatestZIndex = Math.max(
+        myInfo.greatestZIndex,
+        thisWidgetInfo.greatestZIndex
+      );
+    }
+    return myInfo;
+  },
+});
+
+//
+//
+//
+//
+//
+
 // SECTION: Widget
+/** @About Widgets are the building blocks of UIs. */
 export interface Widget {
   width: Size;
   height: Size;
@@ -43,18 +125,78 @@ export interface Widget {
   toString: () => string;
 }
 
-//
-//
-//
-//
-//
-
-const cssStyleBuilders: ((params: {
+/** @About Used to put all widget styling in one spot. */
+const widgetStyleBuilders: ((params: {
   widget: Widget;
   parent: Widget;
-  childrenInfo: ContentCompilationResults;
+  childrenInfo: _ContentCompilationResults;
   startZIndex: number;
-}) => Partial<_CssProps>)[] = [];
+}) => { [key: string]: string | number | boolean | undefined })[] = [];
+
+/** @About Converts a widget to an html element along with some other stats. */
+_addNewContentCompiler({
+  isThisType: (contents: Contents) => exists((contents as any)?.htmlTag),
+  compile: function (params: {
+    contents: Widget;
+    parent: Widget;
+    startZIndex: number;
+  }): _ContentCompilationResults {
+    // We always return a list of html elements
+    const myInfo: _ContentCompilationResults = {
+      htmlElements: [] as (JSX.Element | string)[],
+      widthGrows: false,
+      heightGrows: false,
+      greatestZIndex: params.startZIndex,
+    };
+    const childrenInfo = compileContentsToHtml({
+      contents: params.contents.contents,
+      parent: params.contents,
+      startZIndex: params.startZIndex,
+    });
+    myInfo.greatestZIndex = childrenInfo.greatestZIndex;
+    myInfo.widthGrows = _getSizeGrows(
+      params.contents.width,
+      childrenInfo.widthGrows
+    );
+    myInfo.heightGrows = _getSizeGrows(
+      params.contents.height,
+      childrenInfo.heightGrows
+    );
+    myInfo.htmlElements.push(
+      React.createElement(
+        params.contents.htmlTag,
+        {
+          style: (function () {
+            const styleSoFar = {
+              // Universal Styling
+              display: `flex`,
+              boxSizing: `border-box`,
+              border: `none`,
+              fontFamily: `Roboto`,
+              margin: 0,
+            };
+            for (const i in widgetStyleBuilders) {
+              const newProps = widgetStyleBuilders[i]({
+                widget: params.contents,
+                parent: params.parent,
+                childrenInfo: childrenInfo,
+                startZIndex: params.startZIndex,
+              });
+              for (const key in newProps) {
+                (styleSoFar as any)[key] = (newProps as any)[key];
+              }
+            }
+            return styleSoFar;
+          })(),
+        },
+
+        // Contents
+        childrenInfo.htmlElements
+      )
+    );
+    return myInfo;
+  },
+});
 
 //
 //
@@ -67,7 +209,10 @@ export type Size = number | string | _SizeGrowConfig;
 type _SizeGrowConfig = {
   flex: number;
 };
-export function _isSizeGrowConfig(
+const _getSizeGrows = (givenSize: Size, childGrows: boolean) =>
+  _isSizeGrowConfig(givenSize) ||
+  (givenSize == size2.basedOnContents && childGrows);
+function _isSizeGrowConfig(
   possibleGrowth: any
 ): possibleGrowth is _SizeGrowConfig {
   return exists(possibleGrowth.flex);
@@ -85,15 +230,13 @@ export const size2 = readonlyObj({
     return buildGrowth;
   })(),
 });
-cssStyleBuilders.push(function (params: {
+widgetStyleBuilders.push(function (params: {
   widget: Widget;
   parent: Widget;
-  childrenInfo: ContentCompilationResults;
+  childrenInfo: _ContentCompilationResults;
 }) {
   const computeSizeInfo = (givenSize: Size, childGrows: boolean) => {
-    const sizeGrows =
-      _isSizeGrowConfig(givenSize) ||
-      (givenSize == size2.basedOnContents && childGrows);
+    const sizeGrows = _getSizeGrows(givenSize, childGrows);
     const exactSize = isString(givenSize)
       ? givenSize
       : givenSize !== size2.basedOnContents && !sizeGrows
@@ -165,7 +308,7 @@ export const colors = readonlyObj({
   transparent: `#ffffff00` as RGB,
 });
 export type ImageRef = string;
-cssStyleBuilders.push((params: { widget: Widget }) => {
+widgetStyleBuilders.push((params: { widget: Widget }) => {
   const _isMaterialImage = (material: Material): material is ImageRef =>
     material[0] !== `#`;
   return {
@@ -207,7 +350,7 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
 
 // SECTION: Padding
 export type Padding = number; //Num | [Num, Num] | [Num, Num, Num, Num];
-cssStyleBuilders.push((params: { widget: Widget }) => {
+widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
     padding: numToStandardHtmlUnit(params.widget.padding),
   };
@@ -232,8 +375,8 @@ export const align = readonlyObj({
   bottomCenter: { x: 0, y: -1 } as Align,
   bottomRight: { x: 1, y: -1 } as Align,
 });
-cssStyleBuilders.push(
-  (params: { widget: Widget; childrenInfo: ContentCompilationResults }) => {
+widgetStyleBuilders.push(
+  (params: { widget: Widget; childrenInfo: _ContentCompilationResults }) => {
     return {
       // Content Alignment: https://css-tricks.com/snippets/css/a-guide-to-flexbox/
       justifyContent:
@@ -290,7 +433,7 @@ export const axis = readonlyObj({
   vertical: `vertical` as Axis,
   z: `z` as Axis,
 });
-cssStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
+widgetStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
   return {
     flexDirection:
       params.widget.contentAxis === axis.vertical ? `column` : `row`,
@@ -305,7 +448,7 @@ cssStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
 //
 
 // SECTION: Content Is Scrollable
-cssStyleBuilders.push((params: { widget: Widget }) => {
+widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
     overflowX: params.widget.contentIsScrollableX
       ? `overlay` // Scroll when nesscary, and float above contents
@@ -336,7 +479,7 @@ export const spacing = readonlyObj({
   spaceEvenly: `space-evenly` as Spacing,
   exactly: (num: number) => num as Spacing,
 });
-cssStyleBuilders.push((params: { widget: Widget }) => {
+widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
     rowGap:
       params.widget.contentAxis === axis.vertical &&
@@ -358,7 +501,7 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
 //
 
 // SECTION: Text Style
-cssStyleBuilders.push((params: { widget: Widget }) => {
+widgetStyleBuilders.push((params: { widget: Widget }) => {
   return {
     fontSize: numToFontSize(params.widget.textSize),
     fontWeight: params.widget.textIsBold ? `bold` : undefined,
@@ -373,53 +516,46 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
 //
 //
 
-// SECTION: Contents
-export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
-type _SingleContentTypes = string | boolean | number | Icon | Widget;
+// SECTION: Icons
 export type Icon = { icon: string; toString: () => string };
 export function _isIcon(possibleIcon: any): possibleIcon is Icon {
   return exists(possibleIcon?.icon);
 }
 export const icons = _iconsObj;
-export const _inlineContentOpenTag = `$$#@%`;
-export const _inlineContentCloseTag = `%@#$$`;
-
-//
-//
-//
-//
-//
-
-// SECTION: Widget Template
-/** @see This is a shorthand for creating custom widgets */
-export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
-  defaultParams: T
-): Required<Widget> & {
-  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
-} {
-  const build: any = function (
-    invocationParams?: Partial<Omit<Widget, `htmlTag`>>
-  ): Required<Widget> {
-    const newWidget: any = {};
-    for (const key in defaultParams) {
-      newWidget[key] =
-        (invocationParams as any)?.[key] ?? (defaultParams as any)[key];
-    }
-    newWidget.toString = function (): string {
-      return `$$#@%${JSON.stringify(newWidget)}%@#$$`;
-      /*return renderToString(
-        contentsToHtmlWithInfo(newWidget).htmlElements[0] as any
-      );*/
+const _inlineContentOpenTag = `$$#@%`;
+const _inlineContentCloseTag = `%@#$$`;
+_addNewContentCompiler({
+  isThisType: (contents: Contents) => exists((contents as any)?.icon),
+  compile: function (params: {
+    contents: Icon;
+    parent: Widget;
+    startZIndex: number;
+  }): _ContentCompilationResults {
+    return {
+      htmlElements: [
+        <span
+          className="material-symbols-outlined"
+          style={{
+            width: numToIconSize(params.parent.textSize),
+            height: numToIconSize(params.parent.textSize),
+            color: params.parent.textColor,
+            display: `inline-block`,
+            verticalAlign: `middle`,
+            textAlign: `center`,
+            fontSize: numToIconSize(params.parent.textSize),
+          }}
+        >
+          {params.contents.icon.startsWith(_numIconTag)
+            ? params.contents.icon.substring(_numIconTag.length)
+            : params.contents.icon}
+        </span>,
+      ],
+      widthGrows: false,
+      heightGrows: false,
+      greatestZIndex: params.startZIndex,
     };
-    return newWidget;
-  };
-  for (const key in defaultParams) {
-    build[key] = defaultParams[key];
-  }
-  return build as Required<Widget> & {
-    (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
-  };
-}
+  },
+});
 
 //
 //
@@ -427,54 +563,23 @@ export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
 //
 //
 
-// SECTION: Compile Contents
-type ContentCompilationResults = {
-  htmlElements: (JSX.Element | string)[];
-  widthGrows: boolean;
-  heightGrows: boolean;
-  greatestZIndex: number;
-};
-export const compileContentsToHtml = function (params: {
-  contents: Contents;
-  // We default to horizontal because widget.toString() is mainly called when embeding widgets in text.
-  parent: Widget;
-  startZIndex: number;
-}): ContentCompilationResults {
-  // We always return a list of html elements
-  const myInfo: ContentCompilationResults = {
-    htmlElements: [] as (JSX.Element | string)[],
-    widthGrows: false,
-    heightGrows: false,
-    greatestZIndex: params.startZIndex,
-  };
-
-  // Compile Cotent Lists
-  // We'll split arrays into their individual elements and recurssively convert them to html.
-  if (Array.isArray(params.contents)) {
-    for (let i in params.contents) {
-      const thisWidgetInfo = compileContentsToHtml({
-        contents: params.contents[i],
-        parent: params.parent,
-        startZIndex:
-          params.parent.contentAxis === axis.z
-            ? myInfo.greatestZIndex + 1
-            : params.startZIndex,
-      });
-      myInfo.htmlElements.push(thisWidgetInfo.htmlElements[0]);
-      myInfo.widthGrows = thisWidgetInfo.widthGrows || myInfo.widthGrows;
-      myInfo.heightGrows = thisWidgetInfo.heightGrows || myInfo.heightGrows;
-      myInfo.greatestZIndex = Math.max(
-        myInfo.greatestZIndex,
-        thisWidgetInfo.greatestZIndex
-      );
-    }
-
-    // Compile Literal Content
-  } else if (
-    typeof params.contents === `string` ||
-    typeof params.contents === `number` ||
-    typeof params.contents === `boolean`
-  ) {
+// SECTION: Content Literals
+_addNewContentCompiler({
+  isThisType: (contents: Contents) =>
+    typeof contents === `string` ||
+    typeof contents === `number` ||
+    typeof contents === `boolean`,
+  compile: function (params: {
+    contents: string | number | boolean;
+    parent: Widget;
+    startZIndex: number;
+  }): _ContentCompilationResults {
+    const myInfo: _ContentCompilationResults = {
+      htmlElements: [] as (JSX.Element | string)[],
+      widthGrows: false,
+      heightGrows: false,
+      greatestZIndex: params.startZIndex,
+    };
     const paragraphParts: (string | JSX.Element)[] = [];
     if (typeof params.contents === `string`) {
       const contentsAsString = params.contents;
@@ -554,149 +659,43 @@ export const compileContentsToHtml = function (params: {
         {paragraphParts}
       </p>
     );
+    return myInfo;
+  },
+});
 
-    // Compile Icon Content
-  } else if (_isIcon(params.contents)) {
-    myInfo.htmlElements.push(
-      <span
-        className="material-symbols-outlined"
-        style={{
-          width: numToIconSize(params.parent.textSize),
-          height: numToIconSize(params.parent.textSize),
-          color: params.parent.textColor,
-          display: `inline-block`,
-          verticalAlign: `middle`,
-          textAlign: `center`,
-          fontSize: numToIconSize(params.parent.textSize),
-        }}
-      >
-        {params.contents.icon.startsWith(_numIconTag)
-          ? params.contents.icon.substring(_numIconTag.length)
-          : params.contents.icon}
-      </span>
-    );
+//
+//
+//
+//
+//
 
-    // Compile Widget
-  } else {
-    const childrenInfo = compileContentsToHtml({
-      contents: params.contents.contents,
-      parent: params.contents,
-      startZIndex: params.startZIndex,
-    });
-    myInfo.greatestZIndex = childrenInfo.greatestZIndex;
-    myInfo.widthGrows =
-      _isSizeGrowConfig(params.contents.width) ||
-      (params.contents.width == size2.basedOnContents &&
-        childrenInfo.widthGrows);
-    myInfo.heightGrows =
-      _isSizeGrowConfig(params.contents.height) ||
-      (params.contents.height == size2.basedOnContents &&
-        childrenInfo.heightGrows);
-    myInfo.htmlElements.push(
-      React.createElement(
-        params.contents.htmlTag,
-        {
-          style: (function () {
-            const styleSoFar = {
-              // Universal Styling
-              display: `flex`,
-              boxSizing: `border-box`,
-              border: `none`,
-              fontFamily: `Roboto`,
-              margin: 0,
-            };
-            for (const i in cssStyleBuilders) {
-              const newProps = cssStyleBuilders[i]({
-                widget: params.contents,
-                parent: params.parent,
-                childrenInfo: childrenInfo,
-                startZIndex: params.startZIndex,
-              });
-              for (const key in newProps) {
-                (styleSoFar as any)[key] = (newProps as any)[key];
-              }
-            }
-            return styleSoFar;
-          })(),
-        },
-
-        // Contents
-        childrenInfo.htmlElements
-      )
-    );
+// SECTION: Widget Template
+/** @About This is a shorthand for creating custom widgets */
+export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
+  defaultParams: T
+): Required<Widget> & {
+  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
+} {
+  const build: any = function (
+    invocationParams?: Partial<Omit<Widget, `htmlTag`>>
+  ): Required<Widget> {
+    const newWidget: any = {};
+    for (const key in defaultParams) {
+      newWidget[key] =
+        (invocationParams as any)?.[key] ?? (defaultParams as any)[key];
+    }
+    newWidget.toString = function (): string {
+      return `$$#@%${JSON.stringify(newWidget)}%@#$$`;
+    };
+    return newWidget;
+  };
+  for (const key in defaultParams) {
+    build[key] = defaultParams[key];
   }
-
-  return myInfo;
-};
-
-//
-//
-//
-//
-//
-
-// SECTION: CSS Props
-// We specify all the style props we use here, so we can make sure we account for them everywhere else
-type _CssProps = {
-  // Width & Height
-  width: string | number | boolean;
-  minWidth: string | number | boolean;
-  maxWidth: string | number | boolean;
-  height: string | number | boolean;
-  minHeight: string | number | boolean;
-  maxHeight: string | number | boolean;
-  flexGrow: string | number | boolean;
-  alignSelf: string | number | boolean;
-
-  // Text Size
-  fontSize: string | number | boolean;
-
-  // Text is Bold
-  fontWeight: string | number | boolean;
-
-  // Text is Italic
-  fontStyle: string | number | boolean;
-
-  // Text Color
-  color: string | number | boolean;
-
-  // Corner Radius
-  borderRadius: string | number | boolean;
-
-  // Background
-  backgroundColor: string | number | boolean;
-  backgroundImage: string | number | boolean;
-  backgroundPosition: string | number | boolean;
-  backgroundSize: string | number | boolean;
-  backgroundRepeat: string | number | boolean;
-  backgroundAttachment: string | number | boolean;
-
-  // Shadow
-  boxShadow: string | number | boolean;
-
-  // Padding
-  margin: string | number | boolean;
-  padding: string | number | boolean;
-
-  // Content Align
-  justifyContent: string | number | boolean;
-  alignItems: string | number | boolean;
-  textAlign: string | number | boolean;
-
-  // Content Axis
-  flexDirection: string | number | boolean;
-  zIndex: string | number | boolean;
-
-  // Content Is Scrollable
-  overflowX: string | number | boolean;
-  overflowY: string | number | boolean;
-  scrollbarWidth: string | number | boolean;
-  scrollbarColor: string | number | boolean;
-
-  // Content Spacing
-  rowGap: string | number | boolean;
-  columnGap: string | number | boolean;
-};
+  return build as Required<Widget> & {
+    (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
+  };
+}
 
 //
 //

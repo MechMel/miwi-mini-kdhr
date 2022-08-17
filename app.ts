@@ -49,7 +49,7 @@ page({
                 box({
                   textSize: 1.25,
                   textIsBold: true,
-                  contents: `Melchiah Mauck2`,
+                  contents: `Melchiah Mauck`,
                 }),
                 box({
                   textSize: 1,

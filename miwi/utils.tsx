@@ -1,11 +1,5 @@
 import { _numIconTag } from "./mdIcons";
-import {
-  _isSizeGrowConfig,
-  _inlineContentOpenTag,
-  _inlineContentCloseTag,
-  _isIcon,
-  _pageWidthVmin,
-} from "./widget";
+import { _isIcon, _pageWidthVmin } from "./widget";
 
 export function readonlyObj<T>(obj: T): Readonly<T> {
   return obj;
