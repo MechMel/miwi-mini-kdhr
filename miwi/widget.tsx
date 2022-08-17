@@ -428,67 +428,6 @@ export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
 //
 
 // SECTION: Compile Contents
-// We specify all the style props we use here, so we can make sure we account for them everywhere else
-type _CssProps = {
-  // Width & Height
-  width: string | number | boolean;
-  minWidth: string | number | boolean;
-  maxWidth: string | number | boolean;
-  height: string | number | boolean;
-  minHeight: string | number | boolean;
-  maxHeight: string | number | boolean;
-  flexGrow: string | number | boolean;
-  alignSelf: string | number | boolean;
-
-  // Text Size
-  fontSize: string | number | boolean;
-
-  // Text is Bold
-  fontWeight: string | number | boolean;
-
-  // Text is Italic
-  fontStyle: string | number | boolean;
-
-  // Text Color
-  color: string | number | boolean;
-
-  // Corner Radius
-  borderRadius: string | number | boolean;
-
-  // Background
-  backgroundColor: string | number | boolean;
-  backgroundImage: string | number | boolean;
-  backgroundPosition: string | number | boolean;
-  backgroundSize: string | number | boolean;
-  backgroundRepeat: string | number | boolean;
-  backgroundAttachment: string | number | boolean;
-
-  // Shadow
-  boxShadow: string | number | boolean;
-
-  // Padding
-  margin: string | number | boolean;
-  padding: string | number | boolean;
-
-  // Content Align
-  justifyContent: string | number | boolean;
-  alignItems: string | number | boolean;
-  textAlign: string | number | boolean;
-
-  // Content Axis
-  flexDirection: string | number | boolean;
-  zIndex: string | number | boolean;
-
-  // Content Is Scrollable
-  overflowX: string | number | boolean;
-  overflowY: string | number | boolean;
-  scrollbarWidth: string | number | boolean;
-  scrollbarColor: string | number | boolean;
-
-  // Content Spacing
-  rowGap: string | number | boolean;
-  columnGap: string | number | boolean;
-};
 type ContentCompilationResults = {
   htmlElements: (JSX.Element | string)[];
   widthGrows: boolean;
@@ -688,6 +627,75 @@ export const compileContentsToHtml = function (params: {
   }
 
   return myInfo;
+};
+
+//
+//
+//
+//
+//
+
+// SECTION: CSS Props
+// We specify all the style props we use here, so we can make sure we account for them everywhere else
+type _CssProps = {
+  // Width & Height
+  width: string | number | boolean;
+  minWidth: string | number | boolean;
+  maxWidth: string | number | boolean;
+  height: string | number | boolean;
+  minHeight: string | number | boolean;
+  maxHeight: string | number | boolean;
+  flexGrow: string | number | boolean;
+  alignSelf: string | number | boolean;
+
+  // Text Size
+  fontSize: string | number | boolean;
+
+  // Text is Bold
+  fontWeight: string | number | boolean;
+
+  // Text is Italic
+  fontStyle: string | number | boolean;
+
+  // Text Color
+  color: string | number | boolean;
+
+  // Corner Radius
+  borderRadius: string | number | boolean;
+
+  // Background
+  backgroundColor: string | number | boolean;
+  backgroundImage: string | number | boolean;
+  backgroundPosition: string | number | boolean;
+  backgroundSize: string | number | boolean;
+  backgroundRepeat: string | number | boolean;
+  backgroundAttachment: string | number | boolean;
+
+  // Shadow
+  boxShadow: string | number | boolean;
+
+  // Padding
+  margin: string | number | boolean;
+  padding: string | number | boolean;
+
+  // Content Align
+  justifyContent: string | number | boolean;
+  alignItems: string | number | boolean;
+  textAlign: string | number | boolean;
+
+  // Content Axis
+  flexDirection: string | number | boolean;
+  zIndex: string | number | boolean;
+
+  // Content Is Scrollable
+  overflowX: string | number | boolean;
+  overflowY: string | number | boolean;
+  scrollbarWidth: string | number | boolean;
+  scrollbarColor: string | number | boolean;
+
+  // Content Spacing
+  rowGap: string | number | boolean;
+  columnGap: string | number | boolean;
 };
 
 //
