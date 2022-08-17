@@ -1,9 +1,9 @@
-import { align, axis, colors, size2, spacing, widgetTemplate } from "./widget";
+import { align, axis, colors, size, spacing, widgetTemplate } from "./widget";
 
 /** @About A box is the simplest UI widget. */
 export const box = widgetTemplate({
-  width: size2.basedOnContents,
-  height: size2.basedOnContents,
+  width: size.basedOnContents,
+  height: size.basedOnContents,
   cornerRadius: 0,
   background: colors.transparent,
   shadowSize: 0,
@@ -24,8 +24,8 @@ export const box = widgetTemplate({
 
 /** @About Describes a card. */
 export const card = widgetTemplate({
-  width: size2.basedOnContents,
-  height: size2.basedOnContents,
+  width: size.basedOnContents,
+  height: size.basedOnContents,
   textSize: 1,
   textIsBold: false,
   textIsItalic: false,
@@ -46,8 +46,8 @@ export const card = widgetTemplate({
 
 /** @About Describes a button. */
 export const button = widgetTemplate({
-  width: size2.basedOnContents,
-  height: size2.basedOnContents,
+  width: size.basedOnContents,
+  height: size.basedOnContents,
   textSize: 1,
   textIsBold: false,
   textIsItalic: false,
@@ -68,8 +68,8 @@ export const button = widgetTemplate({
 
 /** @About An app bar is the colored bar at the top of a lot of apps. */
 export const appBar = widgetTemplate({
-  width: size2.grow,
-  height: size2.basedOnContents,
+  width: size.grow,
+  height: size.basedOnContents,
   textSize: 2,
   textIsBold: true,
   textIsItalic: false,

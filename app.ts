@@ -1,12 +1,4 @@
-import {
-  page,
-  colors,
-  align,
-  size2,
-  axis,
-  spacing,
-  icons,
-} from "./miwi/widget";
+import { page, colors, align, size, axis, spacing, icons } from "./miwi/widget";
 import { box, button, appBar, card } from "./miwi/md";
 
 // UI
@@ -21,8 +13,8 @@ page({
       contents: `Contacts`,
     }),
     box({
-      width: size2.grow,
-      height: size2.grow,
+      width: size.grow,
+      height: size.grow,
       padding: 1,
       contentSpacing: 1,
       contentAlign: align.topCenter,
@@ -30,7 +22,7 @@ page({
       contentIsScrollableY: true,
       contents: [
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -42,7 +34,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -63,7 +55,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -75,7 +67,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -96,7 +88,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -108,7 +100,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -129,7 +121,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -141,7 +133,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -162,7 +154,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -174,7 +166,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -195,7 +187,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -207,7 +199,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -228,7 +220,7 @@ page({
           ],
         }),
         card({
-          width: size2.grow,
+          width: size.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -240,7 +232,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size2.grow,
+              width: size.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [

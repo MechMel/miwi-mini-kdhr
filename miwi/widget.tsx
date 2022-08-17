@@ -133,60 +133,51 @@ _addNewContentCompiler({
     parent: Widget;
     startZIndex: number;
   }): _ContentCompilationResults {
-    // We always return a list of html elements
-    const myInfo: _ContentCompilationResults = {
-      htmlElements: [] as (JSX.Element | string)[],
-      widthGrows: false,
-      heightGrows: false,
-      greatestZIndex: params.startZIndex,
-    };
     const childrenInfo = compileContentsToHtml({
       contents: params.contents.contents,
       parent: params.contents,
       startZIndex: params.startZIndex,
     });
-    myInfo.greatestZIndex = childrenInfo.greatestZIndex;
-    myInfo.widthGrows = _getSizeGrows(
-      params.contents.width,
-      childrenInfo.widthGrows
-    );
-    myInfo.heightGrows = _getSizeGrows(
-      params.contents.height,
-      childrenInfo.heightGrows
-    );
-    myInfo.htmlElements.push(
-      React.createElement(
-        params.contents.htmlTag,
-        {
-          style: (function () {
-            const styleSoFar = {
-              // Universal Styling
-              display: `flex`,
-              boxSizing: `border-box`,
-              border: `none`,
-              fontFamily: `Roboto`,
-              margin: 0,
-            };
-            for (const i in widgetStyleBuilders) {
-              const newProps = widgetStyleBuilders[i]({
-                widget: params.contents,
-                parent: params.parent,
-                childrenInfo: childrenInfo,
-                startZIndex: params.startZIndex,
-              });
-              for (const key in newProps) {
-                (styleSoFar as any)[key] = (newProps as any)[key];
+    return {
+      widthGrows: _getSizeGrows(params.contents.width, childrenInfo.widthGrows),
+      heightGrows: _getSizeGrows(
+        params.contents.height,
+        childrenInfo.heightGrows
+      ),
+      greatestZIndex: childrenInfo.greatestZIndex,
+      htmlElements: [
+        React.createElement(
+          params.contents.htmlTag,
+          {
+            style: (function () {
+              const styleSoFar = {
+                // Universal Styling
+                display: `flex`,
+                boxSizing: `border-box`,
+                border: `none`,
+                fontFamily: `Roboto`,
+                margin: 0,
+              };
+              for (const i in widgetStyleBuilders) {
+                const newProps = widgetStyleBuilders[i]({
+                  widget: params.contents,
+                  parent: params.parent,
+                  childrenInfo: childrenInfo,
+                  startZIndex: params.startZIndex,
+                });
+                for (const key in newProps) {
+                  (styleSoFar as any)[key] = (newProps as any)[key];
+                }
               }
-            }
-            return styleSoFar;
-          })(),
-        },
+              return styleSoFar;
+            })(),
+          },
 
-        // Contents
-        childrenInfo.htmlElements
-      )
-    );
-    return myInfo;
+          // Contents
+          childrenInfo.htmlElements
+        ),
+      ],
+    };
   },
 });
 
@@ -203,13 +194,13 @@ type _SizeGrowConfig = {
 };
 const _getSizeGrows = (givenSize: Size, childGrows: boolean) =>
   _isSizeGrowConfig(givenSize) ||
-  (givenSize == size2.basedOnContents && childGrows);
+  (givenSize == size.basedOnContents && childGrows);
 function _isSizeGrowConfig(
   possibleGrowth: any
 ): possibleGrowth is _SizeGrowConfig {
   return exists(possibleGrowth.flex);
 }
-export const size2 = readonlyObj({
+export const size = readonlyObj({
   exactly: function (num: number): Size {
     return num;
   },
@@ -231,7 +222,7 @@ widgetStyleBuilders.push(function (params: {
     const sizeGrows = _getSizeGrows(givenSize, childGrows);
     const exactSize = isString(givenSize)
       ? givenSize
-      : givenSize !== size2.basedOnContents && !sizeGrows
+      : givenSize !== size.basedOnContents && !sizeGrows
       ? numToStandardHtmlUnit(givenSize as number)
       : undefined;
     return [exactSize, sizeGrows];
@@ -578,13 +569,8 @@ _addNewContentCompiler({
     parent: Widget;
     startZIndex: number;
   }): _ContentCompilationResults {
-    const myInfo: _ContentCompilationResults = {
-      htmlElements: [] as (JSX.Element | string)[],
-      widthGrows: false,
-      heightGrows: false,
-      greatestZIndex: params.startZIndex,
-    };
     const paragraphParts: (string | JSX.Element)[] = [];
+    let greatestZIndex = params.startZIndex;
     if (typeof params.contents === `string`) {
       const contentsAsString = params.contents;
       let openTagIndex = contentsAsString.indexOf(_inlineContentOpenTag);
@@ -614,8 +600,8 @@ _addNewContentCompiler({
           parent: params.parent,
           startZIndex: params.startZIndex,
         });
-        myInfo.greatestZIndex = Math.max(
-          myInfo.greatestZIndex,
+        greatestZIndex = Math.max(
+          greatestZIndex,
           embededContentInfo.greatestZIndex
         );
         const embededContentElement = embededContentInfo.htmlElements[0];
@@ -641,29 +627,33 @@ _addNewContentCompiler({
     } else {
       paragraphParts.push(params.contents.toString());
     }
-    myInfo.htmlElements.push(
-      <p
-        style={{
-          color: params.parent.textColor,
-          fontFamily: `Roboto`,
-          fontSize: numToFontSize(params.parent.textSize),
-          fontWeight: params.parent.textIsBold ? `bold` : undefined,
-          fontStyle: params.parent.textIsItalic ? `italic` : undefined,
-          textAlign:
-            params.parent.contentAlign.x === -1
-              ? `left`
-              : params.parent.contentAlign.x === 0
-              ? `center`
-              : `right`,
-          margin: 0,
-          padding: 0,
-          zIndex: params.startZIndex,
-        }}
-      >
-        {paragraphParts}
-      </p>
-    );
-    return myInfo;
+    return {
+      widthGrows: false,
+      heightGrows: false,
+      greatestZIndex: params.startZIndex,
+      htmlElements: [
+        <p
+          style={{
+            color: params.parent.textColor,
+            fontFamily: `Roboto`,
+            fontSize: numToFontSize(params.parent.textSize),
+            fontWeight: params.parent.textIsBold ? `bold` : undefined,
+            fontStyle: params.parent.textIsItalic ? `italic` : undefined,
+            textAlign:
+              params.parent.contentAlign.x === -1
+                ? `left`
+                : params.parent.contentAlign.x === 0
+                ? `center`
+                : `right`,
+            margin: 0,
+            padding: 0,
+            zIndex: params.startZIndex,
+          }}
+        >
+          {paragraphParts}
+        </p>,
+      ],
+    };
   },
 });
 
@@ -885,8 +875,8 @@ export function page(params = _defaultPageParams()) {
                   compileContentsToHtml({
                     contents: _pageWidget(params),
                     parent: {
-                      width: size2.basedOnContents,
-                      height: size2.basedOnContents,
+                      width: size.basedOnContents,
+                      height: size.basedOnContents,
                       cornerRadius: 0,
                       background: colors.transparent,
                       shadowSize: 0,
