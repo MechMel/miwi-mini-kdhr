@@ -13,6 +13,12 @@ import {
   isString,
 } from "./utils";
 
+//
+//
+//
+//
+//
+
 // SECTION: Widget
 export interface Widget {
   width: Size;
@@ -37,8 +43,11 @@ export interface Widget {
   toString: () => string;
 }
 
-/*export function isWidget(possibleWidget: any) : possibleWidget is Widget {
-}*/
+//
+//
+//
+//
+//
 
 const cssStyleBuilders: ((params: {
   widget: Widget;
@@ -134,15 +143,6 @@ cssStyleBuilders.push(function (params: {
 //
 //
 
-// SECTION: Text Style
-cssStyleBuilders.push((params: { widget: Widget }) => {
-  return {
-    fontSize: numToFontSize(params.widget.textSize),
-    fontWeight: params.widget.textIsBold ? `bold` : undefined,
-    fontStyle: params.widget.textIsItalic ? `italic` : undefined,
-    color: params.widget.textColor,
-  };
-});
 // SECTION: Box Decoration
 /** @Note Describes the styling of the background of a widget. */
 export type Material = RGB | ImageRef;
@@ -213,6 +213,12 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
   };
 });
 
+//
+//
+//
+//
+//
+
 // SECTION: Content Align
 export type Align = { x: number; y: number };
 export const align = readonlyObj({
@@ -271,6 +277,12 @@ cssStyleBuilders.push(
   }
 );
 
+//
+//
+//
+//
+//
+
 // SECTION: Content Axis
 export type Axis = `horizontal` | `vertical` | `z`;
 export const axis = readonlyObj({
@@ -286,6 +298,12 @@ cssStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
   };
 });
 
+//
+//
+//
+//
+//
+
 // SECTION: Content Is Scrollable
 cssStyleBuilders.push((params: { widget: Widget }) => {
   return {
@@ -299,6 +317,12 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
     scrollbarColor: `#e3e3e3 transparent`,
   };
 });
+
+//
+//
+//
+//
+//
 
 // SECTION: Content Spacing
 export type Spacing =
@@ -327,6 +351,28 @@ cssStyleBuilders.push((params: { widget: Widget }) => {
   };
 });
 
+//
+//
+//
+//
+//
+
+// SECTION: Text Style
+cssStyleBuilders.push((params: { widget: Widget }) => {
+  return {
+    fontSize: numToFontSize(params.widget.textSize),
+    fontWeight: params.widget.textIsBold ? `bold` : undefined,
+    fontStyle: params.widget.textIsItalic ? `italic` : undefined,
+    color: params.widget.textColor,
+  };
+});
+
+//
+//
+//
+//
+//
+
 // SECTION: Contents
 export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
 type _SingleContentTypes = string | boolean | number | Icon | Widget;
@@ -338,7 +384,14 @@ export const icons = _iconsObj;
 export const _inlineContentOpenTag = `$$#@%`;
 export const _inlineContentCloseTag = `%@#$$`;
 
-// This is a shorthand for creating custom widgets
+//
+//
+//
+//
+//
+
+// SECTION: Widget Template
+/** @see This is a shorthand for creating custom widgets */
 export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
   defaultParams: T
 ): Required<Widget> & {
@@ -367,6 +420,12 @@ export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
     (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
   };
 }
+
+//
+//
+//
+//
+//
 
 // SECTION: Compile Contents
 // We specify all the style props we use here, so we can make sure we account for them everywhere else
@@ -631,7 +690,13 @@ export const compileContentsToHtml = function (params: {
   return myInfo;
 };
 
-// Compile Page
+//
+//
+//
+//
+//
+
+// SECTION: Compile Page
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
 
