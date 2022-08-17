@@ -1,4 +1,12 @@
-import { page, colors, align, size, axis, spacing, icons } from "./miwi/widget";
+import {
+  page,
+  colors,
+  align,
+  size2,
+  axis,
+  spacing,
+  icons,
+} from "./miwi/widget";
 import { box, button, appBar, card } from "./miwi/md";
 
 // UI
@@ -13,8 +21,8 @@ page({
       contents: `Contacts`,
     }),
     box({
-      width: size.grow,
-      height: size.grow,
+      width: size2.grow,
+      height: size2.grow,
       padding: 1,
       contentSpacing: 1,
       contentAlign: align.topCenter,
@@ -22,7 +30,7 @@ page({
       contentIsScrollableY: true,
       contents: [
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -34,7 +42,40 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
+              width: size2.grow,
+              contentAlign: align.topLeft,
+              contentSpacing: 0.25,
+              contents: [
+                box({
+                  textSize: 1.25,
+                  textIsBold: true,
+                  contents: `Melchiah Mauck2`,
+                }),
+                box({
+                  textSize: 1,
+                  textIsBold: false,
+                  textColor: colors.grey,
+                  contentAlign: align.topLeft,
+                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
+                }),
+              ],
+            }),
+          ],
+        }),
+        card({
+          width: size2.grow,
+          contentAlign: align.centerLeft,
+          contentAxis: axis.horizontal,
+          contentSpacing: 1,
+          contents: [
+            box({
+              width: 4,
+              height: 4,
+              cornerRadius: 2,
+              background: `profile_picture.jpg`,
+            }),
+            box({
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -55,7 +96,7 @@ page({
           ],
         }),
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -67,7 +108,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -88,7 +129,7 @@ page({
           ],
         }),
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -100,7 +141,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -121,7 +162,7 @@ page({
           ],
         }),
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -133,7 +174,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -154,7 +195,7 @@ page({
           ],
         }),
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -166,7 +207,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [
@@ -187,7 +228,7 @@ page({
           ],
         }),
         card({
-          width: size.grow,
+          width: size2.grow,
           contentAlign: align.centerLeft,
           contentAxis: axis.horizontal,
           contentSpacing: 1,
@@ -199,40 +240,7 @@ page({
               background: `profile_picture.jpg`,
             }),
             box({
-              width: size.grow,
-              contentAlign: align.topLeft,
-              contentSpacing: 0.25,
-              contents: [
-                box({
-                  textSize: 1.25,
-                  textIsBold: true,
-                  contents: `Melchiah Mauck`,
-                }),
-                box({
-                  textSize: 1,
-                  textIsBold: false,
-                  textColor: colors.grey,
-                  contentAlign: align.topLeft,
-                  contents: `A random, normal programmer. asdfa qadfas asdf asdfa d asdf a asd adfasdfavsscvz a `,
-                }),
-              ],
-            }),
-          ],
-        }),
-        card({
-          width: size.grow,
-          contentAlign: align.centerLeft,
-          contentAxis: axis.horizontal,
-          contentSpacing: 1,
-          contents: [
-            box({
-              width: 4,
-              height: 4,
-              cornerRadius: 2,
-              background: `profile_picture.jpg`,
-            }),
-            box({
-              width: size.grow,
+              width: size2.grow,
               contentAlign: align.topLeft,
               contentSpacing: 0.25,
               contents: [

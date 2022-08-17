@@ -1,16 +1,6 @@
-import * as React from "react";
-import { renderToString } from "react-dom/server";
 import { _numIconTag } from "./mdIcons";
 import {
-  Contents,
-  Widget,
-  size,
-  axis,
-  Axis,
-  colors,
   _isSizeGrowConfig,
-  spacing,
-  _isMaterialImage,
   _inlineContentOpenTag,
   _inlineContentCloseTag,
   _isIcon,
@@ -39,4 +29,8 @@ export function exists(obj: any) {
 
 export function print(message: any) {
   console.log(message);
+}
+
+export function isString(possibleString: any): possibleString is string {
+  return typeof possibleString === `string`;
 }
