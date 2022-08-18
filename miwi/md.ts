@@ -36,9 +36,36 @@ export const box = widgetTemplate({
   htmlTag: `div`,
 });
 
-/** @About Describes a card. */
-export const card = widgetTemplate({
+/** @About A box is the simplest UI widget. */
+export const pageBody = widgetTemplate({
   width: size.basedOnContents,
+  height: size.basedOnContents,
+  cornerRadius: 0,
+  outlineColor: colors.transparent,
+  outlineSize: 0,
+  background: colors.transparent,
+  shadowSize: 0,
+  shadowDirection: align.topCenter,
+  padding: 1,
+  contentAlign: align.center,
+  contentAxis: axis.vertical,
+  contentIsScrollableX: false,
+  contentIsScrollableY: true,
+  contentSpacing: 1,
+  textSize: 1,
+  textIsBold: false,
+  textIsItalic: false,
+  textColor: colors.black,
+  contents: [],
+  htmlTag: `div`,
+});
+
+/** @About Describes a card. */
+// card.row([...]);
+// card.column([...]);
+// card.stack([...]);
+export const card = widgetTemplate({
+  width: size.grow,
   height: size.basedOnContents,
   textSize: 1,
   textIsBold: false,

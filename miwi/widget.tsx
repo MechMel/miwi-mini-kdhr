@@ -12,8 +12,30 @@ import { exists, readonlyObj, print, isString } from "./utils";
 //
 
 // SECTION: Contents
-export type Contents = _SingleContentTypes | _SingleContentTypes[]; //Text | Bool | Num | Widget | Widget[];
-type _SingleContentTypes = string | boolean | number | Icon | Widget;
+export type Contents = _SingleContentTypes | Contents[]; //Text | Bool | Num | Widget | Contents[];
+type _SingleContentTypes =
+  | string
+  | boolean
+  | number
+  | Required<Icon>
+  | Required<Widget>;
+const isContent = function (possibleContent: any): possibleContent is Contents {
+  let isActuallyContent = false;
+  if (Array.isArray(possibleContent)) {
+    isActuallyContent = true;
+    for (const i in possibleContent) {
+      isActuallyContent = isActuallyContent && isContent(possibleContent[i]);
+    }
+  } else {
+    isActuallyContent =
+      typeof possibleContent === `string` ||
+      typeof possibleContent === `boolean` ||
+      typeof possibleContent === `number` ||
+      _isIcon(possibleContent) ||
+      isWidget(possibleContent);
+  }
+  return isActuallyContent;
+};
 type _contentCompiler = {
   isThisType: (contents: Contents) => boolean;
   compile: (params: {
@@ -24,10 +46,8 @@ type _contentCompiler = {
 };
 type _ContentCompilationResults = {
   htmlElements: (JSX.Element | string)[];
-  maxWidth: number;
-  sumOfWidths: number;
-  maxHeight: number;
-  sumOfHeights: number;
+  widthGrows: boolean;
+  heightGrows: boolean;
   greatestZIndex: number;
 };
 const _contentCompilers: _contentCompiler[] = [];
@@ -50,7 +70,7 @@ export const compileContentsToHtml = function (params: {
   throw `Encountered an error in "miwi/widget.tsx.compileContentsToHtml". Could not find a content compiler for ${JSON.stringify(
     params.contents,
     null,
-    2
+    2,
   )}`;
 };
 _addNewContentCompiler({
@@ -63,14 +83,12 @@ _addNewContentCompiler({
     // We'll split arrays into their individual elements and recurssively convert them to html.
     const myInfo: _ContentCompilationResults = {
       htmlElements: [] as (JSX.Element | string)[],
-      maxWidth: 0,
-      sumOfWidths: 0,
-      maxHeight: 0,
-      sumOfHeights: 0,
+      widthGrows: false,
+      heightGrows: false,
       greatestZIndex: params.startZIndex,
     };
     for (let i in params.contents) {
-      const someWidgetInfo = compileContentsToHtml({
+      const thisWidgetInfo = compileContentsToHtml({
         contents: params.contents[i],
         parent: params.parent,
         startZIndex:
@@ -78,14 +96,14 @@ _addNewContentCompiler({
             ? myInfo.greatestZIndex + 1
             : params.startZIndex,
       });
-      myInfo.htmlElements.push(someWidgetInfo.htmlElements[0]);
-      myInfo.maxWidth = Math.max(someWidgetInfo.maxWidth, myInfo.maxWidth);
-      myInfo.sumOfWidths += someWidgetInfo.sumOfWidths;
-      myInfo.maxHeight = Math.max(someWidgetInfo.maxHeight, myInfo.maxHeight);
-      myInfo.sumOfHeights += someWidgetInfo.sumOfHeights;
+      for (const j in thisWidgetInfo.htmlElements) {
+        myInfo.htmlElements.push(thisWidgetInfo.htmlElements[j]);
+      }
+      myInfo.widthGrows = thisWidgetInfo.widthGrows || myInfo.widthGrows;
+      myInfo.heightGrows = thisWidgetInfo.heightGrows || myInfo.heightGrows;
       myInfo.greatestZIndex = Math.max(
         myInfo.greatestZIndex,
-        someWidgetInfo.greatestZIndex
+        thisWidgetInfo.greatestZIndex,
       );
     }
     return myInfo;
@@ -103,10 +121,6 @@ _addNewContentCompiler({
 export interface Widget {
   width: Size;
   height: Size;
-  textSize: number;
-  textIsBold: boolean;
-  textIsItalic: boolean;
-  textColor: RGB;
   cornerRadius: number;
   outlineColor: RGB;
   outlineSize: number;
@@ -120,9 +134,62 @@ export interface Widget {
   contentIsScrollableX: boolean;
   contentIsScrollableY: boolean;
   contentSpacing: Spacing;
+  // contentStyle: style.deferToParent,
+  textSize: number;
+  textIsBold: boolean;
+  textIsItalic: boolean;
+  textColor: RGB;
   contents: Contents;
   htmlTag: string;
   toString: () => string;
+}
+
+const isWidget = (possibleWidget: any): possibleWidget is Widget =>
+  exists(possibleWidget?.htmlTag);
+
+type _WidgetTemplate = Required<Widget> & {
+  (
+    options?: _WidgetConstructorOptions,
+    ...contents: Contents[]
+  ): Required<Widget>;
+};
+type _WidgetConstructorOptions =
+  | Partial<OmitToNever<Widget, `htmlTag` | `contents`>>
+  | Contents;
+type OmitToNever<T, Keys extends string | symbol | number> = Omit<T, Keys> & {
+  [key in Keys]: never;
+};
+
+/** @About This is a shorthand for creating custom widgets */
+export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
+  defaultWidget: T,
+): _WidgetTemplate {
+  const build: any = function (
+    invocationOptions?: _WidgetConstructorOptions,
+    ...invocationContents: Contents[]
+  ): Required<Widget> {
+    if (isContent(invocationOptions)) {
+      invocationContents.unshift(invocationOptions);
+      invocationOptions = {};
+    }
+    const newWidget: any = {};
+    for (const key in defaultWidget) {
+      newWidget[key] =
+        (invocationOptions as any)?.[key] ?? (defaultWidget as any)[key];
+    }
+    // If no invocation contents are provided then we should use the default contents instead.
+    if (invocationContents.length > 0) {
+      newWidget.contents = invocationContents;
+    }
+    newWidget.toString = function (): string {
+      return `$$#@%${JSON.stringify(newWidget)}%@#$$`;
+    };
+    return newWidget;
+  };
+  for (const key in defaultWidget) {
+    build[key] = defaultWidget[key];
+  }
+  return build as _WidgetTemplate;
 }
 
 /** @About Used to put all widget styling in one spot. */
@@ -181,14 +248,10 @@ _addNewContentCompiler({
 
     // Compile the widget
     return {
-      maxWidth: _isSizeGrowConfig(params.contents.width)
-        ? Infinity
-        : params.contents.width === size.basedOnContents
-        ? childrenInfo.maxWidth
-        : params.contents.width,
+      widthGrows: _getSizeGrows(params.contents.width, childrenInfo.widthGrows),
       heightGrows: _getSizeGrows(
         params.contents.height,
-        childrenInfo.heightGrows
+        childrenInfo.heightGrows,
       ),
       greatestZIndex: childrenInfo.greatestZIndex,
       htmlElements: [
@@ -201,10 +264,19 @@ _addNewContentCompiler({
 
           // Contents
           shouldUseTwoElements ? (
-            <div style={childStyle}>{childrenInfo.htmlElements}</div>
+            <div
+              className={
+                params.contents.contentAxis === axis.z
+                  ? stackClassName
+                  : undefined
+              }
+              style={childStyle}
+            >
+              {childrenInfo.htmlElements}
+            </div>
           ) : (
             childrenInfo.htmlElements
-          )
+          ),
         ),
       ],
     };
@@ -226,7 +298,7 @@ const _getSizeGrows = (givenSize: Size, childGrows: boolean) =>
   _isSizeGrowConfig(givenSize) ||
   (givenSize == size.basedOnContents && childGrows);
 function _isSizeGrowConfig(
-  possibleGrowth: any
+  possibleGrowth: any,
 ): possibleGrowth is _SizeGrowConfig {
   return exists(possibleGrowth.flex);
 }
@@ -259,11 +331,11 @@ widgetStyleBuilders.push(function (params: {
   };
   const [exactWidth, widthGrows] = computeSizeInfo(
     params.widget.width,
-    params.childrenInfo.widthGrows
+    params.childrenInfo.widthGrows,
   );
   const [exactHeight, heightGrows] = computeSizeInfo(
     params.widget.height,
-    params.childrenInfo.heightGrows
+    params.childrenInfo.heightGrows,
   );
   return {
     preferParent: {
@@ -366,11 +438,11 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
 
       // Shadow
       boxShadow: `${numToStandardHtmlUnit(
-        0.12 * params.widget.shadowSize * params.widget.shadowDirection.x
+        0.12 * params.widget.shadowSize * params.widget.shadowDirection.x,
       )} ${numToStandardHtmlUnit(
-        -0.12 * params.widget.shadowSize * params.widget.shadowDirection.y
+        -0.12 * params.widget.shadowSize * params.widget.shadowDirection.y,
       )} ${numToStandardHtmlUnit(
-        0.225 * params.widget.shadowSize
+        0.225 * params.widget.shadowSize,
       )} ${numToStandardHtmlUnit(0)} ${colors.grey}`,
     },
   };
@@ -494,7 +566,7 @@ widgetStyleBuilders.push(
           params.widget.contentAxis === axis.z ? `relative` : myPosition,
       },
     };
-  }
+  },
 );
 
 //
@@ -510,6 +582,7 @@ export const axis = readonlyObj({
   vertical: `vertical` as Axis,
   z: `z` as Axis,
 });
+const stackClassName = `stack`;
 widgetStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
   return {
     preferParent: {
@@ -683,8 +756,8 @@ _addNewContentCompiler({
           paragraphParts.push(
             contentsAsString.substring(
               closeTagIndex + _inlineContentCloseTag.length,
-              openTagIndex
-            )
+              openTagIndex,
+            ),
           );
         }
         closeTagIndex =
@@ -696,18 +769,19 @@ _addNewContentCompiler({
           contents: JSON.parse(
             contentsAsString.substring(
               openTagIndex + _inlineContentOpenTag.length,
-              closeTagIndex
-            )
+              closeTagIndex,
+            ),
           ) as Widget,
           parent: params.parent,
           startZIndex: params.startZIndex,
         });
         greatestZIndex = Math.max(
           greatestZIndex,
-          embededContentInfo.greatestZIndex
+          embededContentInfo.greatestZIndex,
         );
-        const embededContentElement = embededContentInfo.htmlElements[0];
-        paragraphParts.push(embededContentElement);
+        for (const i in embededContentInfo.htmlElements) {
+          paragraphParts.push(embededContentInfo.htmlElements[i]);
+        }
         openTagIndex = contentsAsString
           .substring(closeTagIndex)
           .indexOf(_inlineContentOpenTag);
@@ -722,8 +796,8 @@ _addNewContentCompiler({
         paragraphParts.push(
           contentsAsString.substring(
             closeTagIndex + _inlineContentCloseTag.length,
-            contentsAsString.length
-          )
+            contentsAsString.length,
+          ),
         );
       }
     } else {
@@ -765,41 +839,6 @@ _addNewContentCompiler({
 //
 //
 
-// SECTION: Widget Template
-type _WidgetTemplate = Required<Widget> & {
-  (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
-};
-/** @About This is a shorthand for creating custom widgets */
-export function widgetTemplate<T extends Required<Omit<Widget, `toString`>>>(
-  defaultParams: T
-): _WidgetTemplate {
-  const build: any = function (
-    invocationParams?: Partial<Omit<Widget, `htmlTag`>>
-  ): Required<Widget> {
-    const newWidget: any = {};
-    for (const key in defaultParams) {
-      newWidget[key] =
-        (invocationParams as any)?.[key] ?? (defaultParams as any)[key];
-    }
-    newWidget.toString = function (): string {
-      return `$$#@%${JSON.stringify(newWidget)}%@#$$`;
-    };
-    return newWidget;
-  };
-  for (const key in defaultParams) {
-    build[key] = defaultParams[key];
-  }
-  return build as Required<Widget> & {
-    (params?: Partial<Omit<Widget, `htmlTag`>>): Required<Widget>;
-  };
-}
-
-//
-//
-//
-//
-//
-
 // SECTION: Compile Page
 const rootProjectPath = `./`;
 const rootOutputPath = `./website`;
@@ -828,16 +867,28 @@ const _pageWidget = widgetTemplate({
   htmlTag: `div`,
 });
 function _defaultPageParams() {
-  const params = _pageWidget() as any;
+  const params: any = {};
   params.name = `Untitled`;
-  print(params);
+  const defaultPageWidget = _pageWidget();
+  for (const key in defaultPageWidget) {
+    if (key !== `htmlTag` && key !== `contents`) {
+      params[key] = (defaultPageWidget as any)[key];
+    }
+  }
   return params as Partial<
-    Omit<Widget, `htmlTag` | `width` | `height`> & { name: string }
+    Omit<Widget, `htmlTag` | `width` | `height` | `contents`> & { name: string }
   >;
 }
 
 /** @Note Describes a web page. */
-export function page(params = _defaultPageParams()) {
+export function page(
+  options = _defaultPageParams() as ReturnType<typeof _defaultPageParams>,
+  ...contents: Contents[]
+) {
+  if (isContent(options)) {
+    contents.unshift(options);
+    options = _defaultPageParams();
+  }
   // Ensure the website dir exists
   if (!fs.existsSync(rootOutputPath)) {
     fs.mkdirSync(rootOutputPath);
@@ -882,7 +933,7 @@ export function page(params = _defaultPageParams()) {
         if (_imageExtensions.includes(path.extname(allFiles[i]))) {
           fs.writeFileSync(
             path.resolve(rootOutputPath, dir, allFiles[i]),
-            fs.readFileSync(absoluteFilePath)
+            fs.readFileSync(absoluteFilePath),
           );
         }
       }
@@ -903,7 +954,7 @@ export function page(params = _defaultPageParams()) {
               content="width=device-width, initial-scale=1.0"
             />
 
-            <title>{params.name}</title>
+            <title>{options.name}</title>
             <link rel="icon" type="image/png" href="/favicon.png" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -939,7 +990,7 @@ export function page(params = _defaultPageParams()) {
                 height: `4vmin`,
                 backgroundColor: colors.black,
                 borderRadius: `${numToStandardHtmlUnit(
-                  1
+                  1,
                 )} ${numToStandardHtmlUnit(1)} 0 0`,
                 display: `flex`,
                 justifyContent: `center`,
@@ -978,7 +1029,7 @@ export function page(params = _defaultPageParams()) {
               >
                 {
                   compileContentsToHtml({
-                    contents: _pageWidget(params),
+                    contents: _pageWidget(options, contents),
                     parent: {
                       width: size.basedOnContents,
                       height: size.basedOnContents,
@@ -1023,12 +1074,24 @@ export function page(params = _defaultPageParams()) {
                 height: `4vmin`,
                 backgroundColor: colors.black,
                 borderRadius: `0 0 ${numToStandardHtmlUnit(
-                  1
+                  1,
                 )} ${numToStandardHtmlUnit(1)}`,
               }}
             ></div>
+            <script>
+              {`
+              const allStacks = document.getElementsByClassName('fixedWidthStack');
+              for (const i in allStacks) {
+                let maxChildWidth = 0;
+                for (const j in allStacks[i].children) {
+                  maxChildWidth = Math.max(maxChildWidth, allStacks[i].children[j].clientWidth);
+                }
+                allStacks[i].clientWidth = maxChildWidth + allStacks[i].currentStyle.getPropertyValue('padding-left') +  + allStacks[i].currentStyle.getPropertyValue('padding-right');
+              }
+              `}
+            </script>
           </body>
-        </html>
-      )
+        </html>,
+      ),
   );
 }
