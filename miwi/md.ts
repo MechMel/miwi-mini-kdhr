@@ -45,9 +45,9 @@ export const pageBody = widgetTemplate({
   outlineSize: 0,
   background: colors.transparent,
   shadowSize: 0,
-  shadowDirection: align.topCenter,
+  shadowDirection: align.center,
   padding: 1,
-  contentAlign: align.center,
+  contentAlign: align.topCenter,
   contentAxis: axis.vertical,
   contentIsScrollableX: false,
   contentIsScrollableY: true,
@@ -61,9 +61,9 @@ export const pageBody = widgetTemplate({
 });
 
 /** @About Describes a card. */
-// card.row([...]);
-// card.column([...]);
-// card.stack([...]);
+// card.row(...);
+// card.column(...);
+// card.stack(...);
 export const card = widgetTemplate({
   width: size.grow,
   height: size.basedOnContents,

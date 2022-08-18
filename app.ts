@@ -5,7 +5,7 @@ import { box, button, appBar, card, pageBody } from "./miwi/md";
 page(
   appBar,
   pageBody(
-    button.solid,
+    button.solid({ background: colors.black }),
     card({ contentAlign: align.centerLeft }, `This is a Card`),
   ),
 );

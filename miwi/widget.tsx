@@ -264,16 +264,7 @@ _addNewContentCompiler({
 
           // Contents
           shouldUseTwoElements ? (
-            <div
-              className={
-                params.contents.contentAxis === axis.z
-                  ? stackClassName
-                  : undefined
-              }
-              style={childStyle}
-            >
-              {childrenInfo.htmlElements}
-            </div>
+            <div style={childStyle}>{childrenInfo.htmlElements}</div>
           ) : (
             childrenInfo.htmlElements
           ),
@@ -582,7 +573,6 @@ export const axis = readonlyObj({
   vertical: `vertical` as Axis,
   z: `z` as Axis,
 });
-const stackClassName = `stack`;
 widgetStyleBuilders.push((params: { widget: Widget; startZIndex: number }) => {
   return {
     preferParent: {
@@ -1078,18 +1068,6 @@ export function page(
                 )} ${numToStandardHtmlUnit(1)}`,
               }}
             ></div>
-            <script>
-              {`
-              const allStacks = document.getElementsByClassName('fixedWidthStack');
-              for (const i in allStacks) {
-                let maxChildWidth = 0;
-                for (const j in allStacks[i].children) {
-                  maxChildWidth = Math.max(maxChildWidth, allStacks[i].children[j].clientWidth);
-                }
-                allStacks[i].clientWidth = maxChildWidth + allStacks[i].currentStyle.getPropertyValue('padding-left') +  + allStacks[i].currentStyle.getPropertyValue('padding-right');
-              }
-              `}
-            </script>
           </body>
         </html>,
       ),
