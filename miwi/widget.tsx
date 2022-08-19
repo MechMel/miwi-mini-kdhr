@@ -4,6 +4,7 @@ import * as React from "react";
 import { renderToString } from "react-dom/server";
 import { _iconsObj, _numIconTag } from "./mdIcons";
 import { exists, readonlyObj, print, isString } from "./utils";
+import { Var } from "./var";
 
 //
 //
@@ -122,7 +123,7 @@ export interface Widget {
   width: Size;
   height: Size;
   cornerRadius: number;
-  outlineColor: RGB;
+  outlineColor: ColorLiteralRGB;
   outlineSize: number;
   background: Material;
   shadowSize: number;
@@ -138,7 +139,7 @@ export interface Widget {
   textSize: number;
   textIsBold: boolean;
   textIsItalic: boolean;
-  textColor: RGB;
+  textColor: ColorLiteralRGB;
   contents: Contents;
   htmlTag: string;
   toString: () => string;
@@ -376,29 +377,35 @@ function numToStandardHtmlUnit(num: number) {
 
 // SECTION: Box Decoration
 /** @Note Describes the styling of the background of a widget. */
-export type Material = RGB | ImageRef;
+export type Material = Color | ColorLiteralRGB | ImageRef;
 //export type HSV = `${number} ${number} ${number}`;
-export type RGB = `#${string}`;
+export type Color = ReturnType<typeof Color>;
+export const Color = Var.variant(function (v: any): v is ColorLiteralRGB {
+  return typeof v === `string` && v.startsWith(`#`);
+});
+const someColor = Color(`#ff00ff`);
+const isColor = Color.isThisType(someColor);
+export type ColorLiteralRGB = `#${string}`;
 export const colors = readonlyObj({
-  white: `#ffffffff` as RGB,
-  almostWhite: `#f9fafdff` as RGB,
-  pink: `#e91e63ff` as RGB,
-  red: `#f44336ff` as RGB,
-  orange: `#ff9800ff` as RGB,
-  yellow: `#ffea00ff` as RGB,
-  green: `#4caf50ff` as RGB,
-  teal: `#009688ff` as RGB,
-  blue: `#2196f3ff` as RGB,
-  purple: `#9c27b0ff` as RGB,
-  brown: `#795548ff` as RGB,
-  grey: `#9e9e9eff` as RGB,
-  black: `#000000ff` as RGB,
-  transparent: `#ffffff00` as RGB,
+  white: `#ffffffff` as ColorLiteralRGB,
+  almostWhite: `#f9fafdff` as ColorLiteralRGB,
+  pink: `#e91e63ff` as ColorLiteralRGB,
+  red: `#f44336ff` as ColorLiteralRGB,
+  orange: `#ff9800ff` as ColorLiteralRGB,
+  yellow: `#ffea00ff` as ColorLiteralRGB,
+  green: `#4caf50ff` as ColorLiteralRGB,
+  teal: `#009688ff` as ColorLiteralRGB,
+  blue: `#2196f3ff` as ColorLiteralRGB,
+  purple: `#9c27b0ff` as ColorLiteralRGB,
+  brown: `#795548ff` as ColorLiteralRGB,
+  grey: `#9e9e9eff` as ColorLiteralRGB,
+  black: `#000000ff` as ColorLiteralRGB,
+  transparent: `#ffffff00` as ColorLiteralRGB,
 });
 export type ImageRef = string;
 widgetStyleBuilders.push((params: { widget: Widget }) => {
   const _isMaterialImage = (material: Material): material is ImageRef =>
-    material[0] !== `#`;
+    !Color.isThisType(material) && material[0] !== `#`;
   return {
     preferParent: {
       // Corner Radius
@@ -414,6 +421,8 @@ widgetStyleBuilders.push((params: { widget: Widget }) => {
       // Background
       backgroundColor: _isMaterialImage(params.widget.background)
         ? undefined
+        : Color.isThisType(params.widget.background)
+        ? params.widget.background.value
         : params.widget.background,
       backgroundImage: _isMaterialImage(params.widget.background)
         ? `url(${params.widget.background})`

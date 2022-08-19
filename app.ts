@@ -1,11 +1,26 @@
-import { page, colors, align, size, axis, spacing, icons } from "./miwi/widget";
+import {
+  page,
+  colors,
+  align,
+  size,
+  axis,
+  spacing,
+  icons,
+  Color,
+} from "./miwi/widget";
 import { box, button, appBar, card, pageBody } from "./miwi/md";
+
+const primaryColor = Color(`#00ffffff`);
 
 // UI
 page(
-  appBar,
+  appBar({ background: colors.red }, `My App Bar`),
   pageBody(
-    button.solid({ background: colors.black }),
-    card({ contentAlign: align.centerLeft }, `This is a Card`),
+    {
+      padding: 3,
+      contentSpacing: 4,
+    },
+    card(`I am a Card`),
+    box({ width: size.grow, height: 5, background: primaryColor }),
   ),
 );
